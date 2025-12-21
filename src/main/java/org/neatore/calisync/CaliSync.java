@@ -1,7 +1,28 @@
 package org.neatore.calisync;
 
+import java.io.File;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+
 public class CaliSync {
+    public static Logger LOGGER = LogManager.getLogger(CaliSync.class);
+    public static Path database = Paths.get(System.getenv("APPDATA"), "CalendarTask", "Db", "calendar.db");
+
+    public static DBC dbc;
+
     public static void main(String[] args) {
-        System.out.println("Hello, World!");
+        if (!database.toFile().exists()) {
+            LOGGER.error("Database does not exist. Shutting down...");
+            System.exit(-1);
+        } else LOGGER.info("Database found. Initializing...");
+
+        dbc = new DBC("jdbc:sqlite:" + database);
+        LOGGER.info("Done.");
+
+        dbc.addSchedule("Hello, World!");
     }
 }
