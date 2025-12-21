@@ -12,12 +12,14 @@ repositories {
 
 run {
     mainClass = "org.neatore.calisync.CaliSync"
+    standardInput = System.in
 }
 
 dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.25.3'
     implementation 'org.xerial:sqlite-jdbc:3.51.1.0'
     implementation 'org.json:json:20250517'
+    implementation 'org.jetbrains:annotations:26.0.2'
 
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'

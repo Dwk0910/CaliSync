@@ -1,9 +1,9 @@
 package org.neatore.calisync;
 
-import java.io.File;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
+import java.util.Date;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -23,6 +23,8 @@ public class CaliSync {
         dbc = new DBC("jdbc:sqlite:" + database);
         LOGGER.info("Done.");
 
-        dbc.addSchedule("Hello, World!");
+        // Test
+        Date now = new Date();
+        dbc.addSchedule("반갑습니다", now.getTime());
     }
 }
