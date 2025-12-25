@@ -6,6 +6,8 @@ import java.nio.file.Paths;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
+import org.neatore.calisync.object.Date;
+
 public class CaliSync {
     public static Logger LOGGER = LogManager.getLogger(CaliSync.class);
 //    public static Path database = Paths.get(System.getenv("APPDATA"), "CalendarTask", "Db", "calendar.db");
@@ -21,5 +23,7 @@ public class CaliSync {
 
         dbc = new DBC("jdbc:sqlite:" + database);
         LOGGER.info("Done.");
+
+        dbc.removeSchedule(new Date("2026", "12", "25"), 1);
     }
 }
