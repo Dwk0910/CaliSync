@@ -2,6 +2,7 @@ package org.neatore.calisync;
 
 import org.neatore.calisync.object.Date;
 import org.neatore.calisync.object.Schedule;
+import org.neatore.calisync.util.Analyze;
 import org.neatore.calisync.util.HistoryParser;
 
 import org.json.JSONArray;
@@ -13,13 +14,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
+import java.util.Objects;
 
 public record DBC (String dburl, String u_mid) {
     public DBC(String dburl) {
@@ -46,34 +42,19 @@ public record DBC (String dburl, String u_mid) {
 
         String it_unique_id = "dkcal_mdays_" + date.getDate(1);
         try (Connection conn = DriverManager.getConnection(dburl);
-            PreparedStatement pstmt = conn.prepareStatement("SELECT it_content FROM item_table WHERE it_unique_id = ?;")) {
+            PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM item_table WHERE it_unique_id = ?;")) {
             pstmt.setString(1, it_unique_id);
-
-            String result;
             ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) result = rs.getString("it_content");
-            else return null;
-
-            Scanner scan = new Scanner(result);
-            List<Schedule> resultList = new ArrayList<>();
-            while (scan.hasNext()) {
-                // TODO: 취소선으로 isCompleted 판단하기
-                resultList.add(new Schedule(date, scan.nextLine(), false));
-            }
-            return resultList;
+            return Analyze.getContents(rs);
         } catch (SQLException e) {
             CaliSync.LOGGER.error(e);
             return null;
         }
     }
 
-    public void addSchedule(String content, long date) {
-        long now = System.currentTimeMillis();
-
-        DateTimeFormatter unique_id_formatter = DateTimeFormatter.ofPattern("yyyyMMdd"),
-                it_date_formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        String it_unique_id = "dkcal_mdays_" + Instant.ofEpochMilli(date).atZone(ZoneId.systemDefault()).format(unique_id_formatter),
-                it_date = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).format(it_date_formatter);
+    public void addSchedule(Date date, String content) {
+        String it_unique_id = "dkcal_mdays_" + date.getDate(1),
+                it_date = Date.Now.format("yyyy-MM-dd HH:mm:ss");
         try (Connection conn = DriverManager.getConnection(dburl)) {
             boolean exists = false;
             String tHistory, tContent = null;
@@ -97,7 +78,7 @@ public record DBC (String dburl, String u_mid) {
 
                     JSONObject obj = new JSONObject();
                     obj.put("content", tContent);
-                    obj.put("time", now);
+                    obj.put("time", Date.Now.getUnixTime());
                     array.put(obj);
 
                     tHistory = HistoryParser.encode(array);
@@ -106,7 +87,7 @@ public record DBC (String dburl, String u_mid) {
                     JSONArray array = new JSONArray();
                     JSONObject obj = new JSONObject();
                     obj.put("content", content);
-                    obj.put("time", now);
+                    obj.put("time", Date.Now.getUnixTime());
                     array.put(obj);
 
                     tHistory = HistoryParser.encode(array);
@@ -144,6 +125,43 @@ public record DBC (String dburl, String u_mid) {
             if (affectedRows > 0) CaliSync.LOGGER.info("Appending data has been succeed.");
         } catch (SQLException e) {
             CaliSync.LOGGER.error(e);
+        }
+    }
+
+    public void removeSchedule(Date date, int seq) {
+        String it_unique_id = "dkcal_mdays_" + date.getDate(1);
+
+        List<Schedule> schedules = Objects.requireNonNull(getSchedules(date));
+        StringBuilder it_content = new StringBuilder();
+
+        int i = 1;
+        boolean changed = false;
+        for (Schedule schedule : schedules) {
+            if (i != seq) it_content.append(i == 1 ? schedule.content() : "\n" + schedule.content());
+            else changed = true;
+            i++;
+        }
+
+        if (changed) {
+            String newHistory = HistoryParser.encode(HistoryParser.addHistory(dburl, it_unique_id, it_content.toString()));
+
+            int affectedRows = 0;
+            try (Connection conn = DriverManager.getConnection(dburl);
+                 PreparedStatement pstmt = conn.prepareStatement("UPDATE item_table SET it_content = ?, it_history = ?, it_mdate = ? WHERE it_unique_id = ?;")) {
+                //                                                                              1               2             3                    4
+                pstmt.setString(1, it_content.toString());
+                pstmt.setString(2, newHistory);
+                pstmt.setString(3, Date.Now.format("yyyy-MM-dd HH:mm:ss"));
+                pstmt.setString(4, it_unique_id);
+
+                affectedRows = pstmt.executeUpdate();
+            } catch (SQLException e) {
+                CaliSync.LOGGER.error(e);
+            }
+
+            if (affectedRows > 0) CaliSync.LOGGER.info("Removing data has been succeed.");
+        } else {
+            CaliSync.LOGGER.info("Schedule sequence {} does not exist. It is not changeable", seq);
         }
     }
 }
