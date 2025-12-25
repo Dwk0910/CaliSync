@@ -241,3 +241,4 @@ build/**
 *.hprof
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,jetbrains,java,gradle,maven,visualstudiocode
+test/calendar.db

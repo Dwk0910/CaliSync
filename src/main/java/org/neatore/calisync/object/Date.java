@@ -1,0 +1,20 @@
+package org.neatore.calisync.object;
+
+public record Date(String year, String month, String day) {
+    private static String hour, minute, second;
+    public void setTime(String hour, String minute, String second) {
+        Date.hour = (hour.length() == 1) ? "0" + hour : hour;
+        Date.minute = (minute.length() == 1) ? "0" + minute : minute;
+        Date.second = (second.length() == 1) ? "0" + second : second;
+    }
+
+    /**
+     *
+     * @param type - Type of date string output.<br/>0 : returns `YYYY-MM-dd HH:mm:ss`<br/>1 : returns `YYYYMMdd`
+     */
+    public String getDate(int type) {
+        if (type == 0) return "%s-%s-%s %s:%s:%s".formatted(year, month, day, hour, minute, second);
+        else if (type == 1) return "%s%s%s".formatted(year, month, day);
+        else return null;
+    }
+}

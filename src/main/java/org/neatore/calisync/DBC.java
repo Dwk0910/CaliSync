@@ -1,5 +1,7 @@
 package org.neatore.calisync;
 
+import org.neatore.calisync.object.Date;
+import org.neatore.calisync.object.Schedule;
 import org.neatore.calisync.util.HistoryParser;
 
 import org.json.JSONArray;
@@ -14,6 +16,10 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 public record DBC (String dburl, String u_mid) {
     public DBC(String dburl) {
@@ -34,8 +40,35 @@ public record DBC (String dburl, String u_mid) {
         return u_mid;
     }
 
+    public List<Schedule> getSchedules(Date date) {
+        // 시분초는 사용하지 않으므로 리셋
+        date.setTime("0", "0", "0");
+
+        String it_unique_id = "dkcal_mdays_" + date.getDate(1);
+        try (Connection conn = DriverManager.getConnection(dburl);
+            PreparedStatement pstmt = conn.prepareStatement("SELECT it_content FROM item_table WHERE it_unique_id = ?;")) {
+            pstmt.setString(1, it_unique_id);
+
+            String result;
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) result = rs.getString("it_content");
+            else return null;
+
+            Scanner scan = new Scanner(result);
+            List<Schedule> resultList = new ArrayList<>();
+            while (scan.hasNext()) {
+                // TODO: 취소선으로 isCompleted 판단하기
+                resultList.add(new Schedule(date, scan.nextLine(), false));
+            }
+            return resultList;
+        } catch (SQLException e) {
+            CaliSync.LOGGER.error(e);
+            return null;
+        }
+    }
+
     public void addSchedule(String content, long date) {
-        long now = System.currentTimeMillis() / 1000L;
+        long now = System.currentTimeMillis();
 
         DateTimeFormatter unique_id_formatter = DateTimeFormatter.ofPattern("yyyyMMdd"),
                 it_date_formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
