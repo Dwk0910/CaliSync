@@ -25,6 +25,7 @@ public class CaliSync {
 
         // Test
         Date now = new Date();
+        now.setTime(1767225600000L);
         dbc.addSchedule("반갑습니다", now.getTime());
     }
 }

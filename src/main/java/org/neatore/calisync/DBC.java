@@ -1,8 +1,9 @@
 package org.neatore.calisync;
 
+import org.neatore.calisync.util.HistoryParser;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.neatore.calisync.util.HistoryParser;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
