@@ -1,5 +1,7 @@
 package org.neatore.calisync;
 
+import org.jetbrains.annotations.NotNull;
+
 import org.neatore.calisync.object.Date;
 import org.neatore.calisync.object.Schedule;
 import org.neatore.calisync.util.Analyze;
@@ -15,7 +17,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import java.util.List;
-import java.util.Objects;
 
 public record DBC (String dburl, String u_mid) {
     public DBC(String dburl) {
@@ -37,19 +38,16 @@ public record DBC (String dburl, String u_mid) {
     }
 
     public List<Schedule> getSchedules(Date date) {
-        // 시분초는 사용하지 않으므로 리셋
-        date.setTime("0", "0", "0");
-
         String it_unique_id = "dkcal_mdays_" + date.getDate(1);
         try (Connection conn = DriverManager.getConnection(dburl);
             PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM item_table WHERE it_unique_id = ?;")) {
             pstmt.setString(1, it_unique_id);
             ResultSet rs = pstmt.executeQuery();
-            return Analyze.getContents(rs);
+            if (rs.next()) return Analyze.getSchedules(rs);
         } catch (SQLException e) {
             CaliSync.LOGGER.error(e);
-            return null;
         }
+        return null;
     }
 
     public void addSchedule(Date date, String content) {
@@ -129,9 +127,14 @@ public record DBC (String dburl, String u_mid) {
     }
 
     public void removeSchedule(Date date, int seq) {
-        String it_unique_id = "dkcal_mdays_" + date.getDate(1);
+        String it_unique_id = date.getUniqueId();
 
-        List<Schedule> schedules = Objects.requireNonNull(getSchedules(date));
+        List<Schedule> schedules = getSchedules(date);
+        if (schedules == null || schedules.isEmpty()) {
+            CaliSync.LOGGER.error("No schedules found for {}", date.getDate(2));
+            return;
+        }
+
         StringBuilder it_content = new StringBuilder();
 
         int i = 1;
@@ -162,6 +165,27 @@ public record DBC (String dburl, String u_mid) {
             if (affectedRows > 0) CaliSync.LOGGER.info("Removing data has been succeed.");
         } else {
             CaliSync.LOGGER.info("Schedule sequence {} does not exist. It is not changeable", seq);
+        }
+    }
+
+    public void removeAllSchedules(@NotNull Date date) {
+        if (getSchedules(date) == null) {
+            CaliSync.LOGGER.info("No schedules found for {}", date.getDate(2));
+            return;
+        }
+
+        String newHistory = HistoryParser.encode(HistoryParser.addHistory(dburl, date.getUniqueId(), ""));
+        try (Connection conn = DriverManager.getConnection(dburl);
+            PreparedStatement pstmt = conn.prepareStatement("UPDATE item_table SET it_content = ?, it_history = ?, it_mdate = ? WHERE it_unique_id = ?;")) {
+            pstmt.setString(1, "");
+            pstmt.setString(2, newHistory);
+            pstmt.setString(3, Date.Now.format("yyyy-MM-dd HH:mm:ss"));
+            pstmt.setString(4, date.getUniqueId());
+
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) CaliSync.LOGGER.info("Schedules on {} have been removed.", date.getDate(2));
+        } catch (SQLException e) {
+            CaliSync.LOGGER.error(e);
         }
     }
 }
