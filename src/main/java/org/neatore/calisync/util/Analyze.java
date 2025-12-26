@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Scanner;
 
 public class Analyze {
-    public static List<Schedule> getContents(ResultSet rs) {
+    public static List<Schedule> getSchedules(ResultSet rs) {
         final List<Schedule> result = new ArrayList<>();
         try {
             String it_unique_id = rs.getString("it_unique_id").replace("dkcal_mdays_", "");

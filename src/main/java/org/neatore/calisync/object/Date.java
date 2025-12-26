@@ -32,20 +32,30 @@ public record Date(String year, String month, String day) {
 
     /**
      *
-     * @param type - Type of date string output.<br/>0 : returns `YYYY-MM-dd HH:mm:ss`<br/>1 : returns `YYYYMMdd`<br/>2 : returns Linux Timestamp (EpochSecond)
+     * @param type - Type of date string output.<br/>0 : returns `YYYY-MM-dd HH:mm:ss`<br/>1 : returns `YYYYMMdd`<br/>2 : returns `YYYY.MM.dd.`<br/>3 : returns Linux Timestamp (EpochSecond)
      */
-        public String getDate(int type) {
-        if (type == 0) return "%s-%s-%s %s:%s:%s".formatted(year, month, day, hour, minute, second);
-        else if (type == 1) return "%s%s%s".formatted(year, month, day);
-        else if (type == 2) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-            LocalDateTime localDateTime = LocalDateTime.parse("%s%s%s%s%s%s".formatted(year, month, day, hour, minute, second), formatter);
-            return Long.toString(
-                    localDateTime.atZone(timeZone)
-                    .toInstant()
-                    .getEpochSecond()
-            );
+    public String getDate(int type) {
+        switch (type) {
+            case 0 -> { return "%s-%s-%s %s:%s:%s".formatted(year, month, day, hour, minute, second); }
+            case 1 -> { return "%s%s%s".formatted(year, month, day); }
+            case 2 -> { return "%s.%s.%s.".formatted(year, month, day); }
+            case 3 -> {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+                LocalDateTime localDateTime = LocalDateTime.parse("%s%s%s%s%s%s".formatted(year, month, day, hour, minute, second), formatter);
+                return Long.toString(
+                        localDateTime.atZone(timeZone)
+                                .toInstant()
+                                .getEpochSecond()
+                );
+            }
+            default -> { return null; }
         }
-        else return null;
+    }
+
+    /**
+     * @return `dkcal_mdays_YYMMdd` : it_unique_id
+     */
+    public String getUniqueId() {
+        return "dkcal_mdays_" + getDate(1);
     }
 }
