@@ -141,7 +141,7 @@ public record DBC (String dburl, String u_mid) {
         boolean changed = false;
         for (Schedule schedule : schedules) {
             if (i != seq) it_content.append(i == 1 ? schedule.content() : "\n" + schedule.content());
-            else changed = true;
+            else if (!schedule.content().isEmpty()) changed = true;
             i++;
         }
 
@@ -164,12 +164,13 @@ public record DBC (String dburl, String u_mid) {
 
             if (affectedRows > 0) CaliSync.LOGGER.info("Removing data has been succeed.");
         } else {
-            CaliSync.LOGGER.info("Schedule sequence {} does not exist. It is not changeable", seq);
+            CaliSync.LOGGER.info("No content found for sequence {}", seq);
         }
     }
 
     public void removeAllSchedules(@NotNull Date date) {
-        if (getSchedules(date) == null) {
+        List<Schedule> schedules = getSchedules(date);
+        if (schedules == null || schedules.isEmpty()) {
             CaliSync.LOGGER.info("No schedules found for {}", date.getDate(2));
             return;
         }
@@ -184,6 +185,22 @@ public record DBC (String dburl, String u_mid) {
 
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) CaliSync.LOGGER.info("Schedules on {} have been removed.", date.getDate(2));
+        } catch (SQLException e) {
+            CaliSync.LOGGER.error(e);
+        }
+    }
+
+    public void removeRecord(@NotNull Date date) {
+        if (getSchedules(date) == null) {
+            CaliSync.LOGGER.error("No record found for {}", date.getDate(2));
+            return;
+        }
+
+        try (Connection conn = DriverManager.getConnection(dburl);
+             PreparedStatement pstmt = conn.prepareStatement("DELETE FROM item_table WHERE it_unique_id = ?;")) {
+            pstmt.setString(1, date.getUniqueId());
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) CaliSync.LOGGER.info("Records on {} have been removed.", date.getDate(2));
         } catch (SQLException e) {
             CaliSync.LOGGER.error(e);
         }

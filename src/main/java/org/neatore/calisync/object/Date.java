@@ -3,6 +3,7 @@ package org.neatore.calisync.object;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 public record Date(String year, String month, String day) {
@@ -10,6 +11,12 @@ public record Date(String year, String month, String day) {
     private static final ZoneId timeZone = ZoneId.of("Asia/Seoul");
 
     public static final class Now {
+        public static Date toDate() {
+            Instant instant = Instant.now();
+            ZonedDateTime zdt = instant.atZone(timeZone);
+            return new Date(Integer.toString(zdt.getYear()), Integer.toString(zdt.getMonthValue()), Integer.toString(zdt.getDayOfMonth()));
+        }
+
         public static String getUnixTime() {
             Instant instant = Instant.now();
             return Long.toString(instant.atZone(timeZone).toEpochSecond());
