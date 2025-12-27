@@ -32,6 +32,7 @@ public record DBC (String dburl, String u_mid) {
             if (rs.next()) u_mid = rs.getString("u_mid");
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
+            System.exit(-1);
         }
 
         return u_mid;
