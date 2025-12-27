@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'org.neatore.calisync'
+
+application {
+    mainClass = "org.neatore.calisync.CaliSync"
+}
+
+dependencies {
+    implementation 'org.java-websocket:Java-WebSocket:1.6.0'
+
+    implementation 'org.json:json:20250517'
+    implementation 'org.jetbrains:annotations:26.0.2'
+    implementation 'org.xerial:sqlite-jdbc:3.51.1.0'
+
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
