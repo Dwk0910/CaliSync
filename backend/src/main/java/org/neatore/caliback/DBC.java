@@ -1,11 +1,11 @@
-package org.neatore.calisync;
+package org.neatore.caliback;
 
 import org.jetbrains.annotations.NotNull;
 
-import org.neatore.calisync.object.Date;
-import org.neatore.calisync.object.Schedule;
-import org.neatore.calisync.util.Analyze;
-import org.neatore.calisync.util.HistoryParser;
+import org.neatore.caliback.object.Date;
+import org.neatore.caliback.object.Schedule;
+import org.neatore.caliback.util.Analyze;
+import org.neatore.caliback.util.HistoryParser;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -31,7 +31,7 @@ public record DBC (String dburl, String u_mid) {
             ResultSet rs = pstmt.executeQuery()) {
             if (rs.next()) u_mid = rs.getString("u_mid");
         } catch (SQLException e) {
-            CaliSync.LOGGER.error(e);
+            CaliBack.LOGGER.error(e);
         }
 
         return u_mid;
@@ -45,7 +45,7 @@ public record DBC (String dburl, String u_mid) {
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) return Analyze.getSchedules(rs);
         } catch (SQLException e) {
-            CaliSync.LOGGER.error(e);
+            CaliBack.LOGGER.error(e);
         }
         return null;
     }
@@ -120,9 +120,9 @@ public record DBC (String dburl, String u_mid) {
                 }
             }
 
-            if (affectedRows > 0) CaliSync.LOGGER.info("Appending data has been succeed.");
+            if (affectedRows > 0) CaliBack.LOGGER.info("Appending data has been succeed.");
         } catch (SQLException e) {
-            CaliSync.LOGGER.error(e);
+            CaliBack.LOGGER.error(e);
         }
     }
 
@@ -131,7 +131,7 @@ public record DBC (String dburl, String u_mid) {
 
         List<Schedule> schedules = getSchedules(date);
         if (schedules == null || schedules.isEmpty()) {
-            CaliSync.LOGGER.error("No schedules found for {}", date.getDate(2));
+            CaliBack.LOGGER.error("No schedules found for {}", date.getDate(2));
             return;
         }
 
@@ -159,19 +159,19 @@ public record DBC (String dburl, String u_mid) {
 
                 affectedRows = pstmt.executeUpdate();
             } catch (SQLException e) {
-                CaliSync.LOGGER.error(e);
+                CaliBack.LOGGER.error(e);
             }
 
-            if (affectedRows > 0) CaliSync.LOGGER.info("Removing data has been succeed.");
+            if (affectedRows > 0) CaliBack.LOGGER.info("Removing data has been succeed.");
         } else {
-            CaliSync.LOGGER.info("No content found for sequence {}", seq);
+            CaliBack.LOGGER.info("No content found for sequence {}", seq);
         }
     }
 
     public void removeAllSchedules(@NotNull Date date) {
         List<Schedule> schedules = getSchedules(date);
         if (schedules == null || schedules.isEmpty()) {
-            CaliSync.LOGGER.info("No schedules found for {}", date.getDate(2));
+            CaliBack.LOGGER.info("No schedules found for {}", date.getDate(2));
             return;
         }
 
@@ -184,15 +184,15 @@ public record DBC (String dburl, String u_mid) {
             pstmt.setString(4, date.getUniqueId());
 
             int affectedRows = pstmt.executeUpdate();
-            if (affectedRows > 0) CaliSync.LOGGER.info("Schedules on {} have been removed.", date.getDate(2));
+            if (affectedRows > 0) CaliBack.LOGGER.info("Schedules on {} have been removed.", date.getDate(2));
         } catch (SQLException e) {
-            CaliSync.LOGGER.error(e);
+            CaliBack.LOGGER.error(e);
         }
     }
 
     public void removeRecord(@NotNull Date date) {
         if (getSchedules(date) == null) {
-            CaliSync.LOGGER.error("No record found for {}", date.getDate(2));
+            CaliBack.LOGGER.error("No record found for {}", date.getDate(2));
             return;
         }
 
@@ -200,9 +200,9 @@ public record DBC (String dburl, String u_mid) {
              PreparedStatement pstmt = conn.prepareStatement("DELETE FROM item_table WHERE it_unique_id = ?;")) {
             pstmt.setString(1, date.getUniqueId());
             int affectedRows = pstmt.executeUpdate();
-            if (affectedRows > 0) CaliSync.LOGGER.info("Records on {} have been removed.", date.getDate(2));
+            if (affectedRows > 0) CaliBack.LOGGER.info("Records on {} have been removed.", date.getDate(2));
         } catch (SQLException e) {
-            CaliSync.LOGGER.error(e);
+            CaliBack.LOGGER.error(e);
         }
     }
 }

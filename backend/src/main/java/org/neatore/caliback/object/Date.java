@@ -1,4 +1,4 @@
-package org.neatore.calisync.object;
+package org.neatore.caliback.object;
 
 import java.time.Instant;
 import java.time.LocalDateTime;

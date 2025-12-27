@@ -1,8 +1,8 @@
-package org.neatore.calisync.util;
+package org.neatore.caliback.util;
 
-import org.neatore.calisync.CaliSync;
-import org.neatore.calisync.object.Date;
-import org.neatore.calisync.object.Schedule;
+import org.neatore.caliback.CaliBack;
+import org.neatore.caliback.object.Date;
+import org.neatore.caliback.object.Schedule;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -30,7 +30,7 @@ public class Analyze {
                 result.add(new Schedule(new Date(Integer.toString(date.getYear()), Integer.toString(date.getMonthValue()), Integer.toString(date.getDayOfMonth())), scan.nextLine(), false));
             }
         } catch (SQLException e) {
-            CaliSync.LOGGER.error(e);
+            CaliBack.LOGGER.error(e);
         }
         return result;
     }

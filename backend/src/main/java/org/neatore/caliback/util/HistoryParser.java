@@ -1,7 +1,7 @@
-package org.neatore.calisync.util;
+package org.neatore.caliback.util;
 
-import org.neatore.calisync.CaliSync;
-import org.neatore.calisync.object.Date;
+import org.neatore.caliback.CaliBack;
+import org.neatore.caliback.object.Date;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -29,7 +29,7 @@ public final class HistoryParser {
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) return HistoryParser.decode(rs.getString("it_history"));
         } catch (SQLException e) {
-            CaliSync.LOGGER.error(e);
+            CaliBack.LOGGER.error(e);
         }
         return null;
     }
