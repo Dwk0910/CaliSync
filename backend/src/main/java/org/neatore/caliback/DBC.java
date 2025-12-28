@@ -27,8 +27,8 @@ public record DBC (String dburl, String u_mid) {
         String sql = "SELECT u_mid FROM \"item_table\"";
         String u_mid = null;
         try (Connection conn = DriverManager.getConnection(dburl);
-            PreparedStatement pstmt = conn.prepareStatement(sql);
-            ResultSet rs = pstmt.executeQuery()) {
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
             if (rs.next()) u_mid = rs.getString("u_mid");
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
