@@ -3,11 +3,14 @@ package org.neatore.calisync;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.json.JSONObject;
+import org.neatore.calisync.packet.SignalPacket;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 public class CaliSync {
@@ -21,10 +24,14 @@ public class CaliSync {
             CaliSync.LOGGER.error(e);
         }
 
-        JSONObject obj = new JSONObject();
-        obj.put("name", "박종윤");
-        obj.put("details", "qㅕㅇ신");
+        Scanner scan = new Scanner(System.in);
+        System.out.print("type date (yyyyMMdd) : ");
+        String date = scan.nextLine();
 
-        client.sendSignal(obj);
+        Map<String, Object> obj = new HashMap<>();
+        obj.put("date", date);
+        obj.put("content", "Test schedule");
+
+        client.sendSignal(new SignalPacket(SignalPacket.Method.POST, obj));
     }
 }
