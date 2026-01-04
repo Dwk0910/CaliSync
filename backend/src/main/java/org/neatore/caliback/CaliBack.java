@@ -12,7 +12,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class CaliBack {
     public static Logger LOGGER = LogManager.getLogger(CaliBack.class);
-//    public static Path database = Paths.get(System.getenv("APPDATA"), "CalendarTask", "Db", "calendar.db");
     public static Path database = Paths.get(System.getProperty("user.dir"), "..", "test", "calendar.db");
 
     public static DBC dbc;

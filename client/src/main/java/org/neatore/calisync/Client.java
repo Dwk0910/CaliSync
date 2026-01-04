@@ -3,10 +3,19 @@ package org.neatore.calisync;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
+import org.json.JSONObject;
+
 import java.net.URI;
 
 public class Client extends WebSocketClient {
     public Client(URI serverUri) { super(serverUri); }
+
+    public void sendSignal(JSONObject obj) {
+        if (this.isOpen()) {
+            this.send(obj.toString());
+            CaliSync.LOGGER.info("Signal sent.");
+        } else throw new RuntimeException("Socket is closed.");
+    }
 
     @Override
     public void onMessage(String s) {
