@@ -9,9 +9,7 @@ name: CaliSync CI
 
 on:
   push:
-    branches: [ "Development" ]
-  pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "Development" ]
 
 jobs:
   build:
