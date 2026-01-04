@@ -51,6 +51,10 @@ public record DBC (String dburl, String u_mid) {
         return null;
     }
 
+    public void addSchedule(Schedule schedule) {
+        addSchedule(schedule.date(), schedule.content());
+    }
+
     public void addSchedule(Date date, String content) {
         String it_unique_id = "dkcal_mdays_" + date.getDate(1),
                 it_date = Date.Now.format("yyyy-MM-dd HH:mm:ss");
