@@ -6,7 +6,16 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
-public record Date(String year, String month, String day) {
+public class Date {
+    private final String year, month, day;
+    private String hour, minute, second;
+
+    public Date(String year, String month, String day) {
+        this.year = year;
+        this.month = month;
+        this.day = day;
+    }
+
     // ** DEFUALT ZONE ID **
     private static final ZoneId timeZone = ZoneId.of("Asia/Seoul");
 
@@ -30,11 +39,60 @@ public record Date(String year, String month, String day) {
         }
     }
 
-    private static String hour, minute, second;
+    /**
+     * String format must be one of the following.
+     * 'yyyy-MM-dd HH:mm:ss'
+     * 'yyyy-MM-dd'
+     * 'yyyyMMdd'
+     *  or Unix timestamp (sec)
+     */
+    public static Date parseDate(String s) {
+        if (s == null || s.isEmpty()) return null;
+
+        String year, month, day;
+        String hour = "00", minute = "00", second = "00";
+
+        if (s.contains("-") && s.contains(":")) { // 1. 'yyyy-MM-dd HH:mm:ss'
+            String[] parts = s.split(" ");
+            String[] dateParts = parts[0].split("-");
+            String[] timeParts = parts[1].split(":");
+            year = dateParts[0]; month = dateParts[1]; day = dateParts[2];
+            hour = timeParts[0]; minute = timeParts[1]; second = timeParts[2];
+        }
+        else if (s.contains("-")) { // 2. 'yyyy-MM-dd'
+            String[] dateParts = s.split("-");
+            year = dateParts[0]; month = dateParts[1]; day = dateParts[2];
+        }
+        else if (s.length() == 8 && s.matches("\\d+")) { // 3. 'yyyyMMdd'
+            year = s.substring(0, 4);
+            month = s.substring(4, 6);
+            day = s.substring(6, 8);
+        }
+        else if (s.matches("\\d{10}")) { // 4. Unix timestamp (sec)
+            java.time.LocalDateTime dt = java.time.LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochSecond(Long.parseLong(s)),
+                    java.time.ZoneId.systemDefault()
+            );
+            year = String.valueOf(dt.getYear());
+            month = String.format("%02d", dt.getMonthValue());
+            day = String.format("%02d", dt.getDayOfMonth());
+            hour = String.format("%02d", dt.getHour());
+            minute = String.format("%02d", dt.getMinute());
+            second = String.format("%02d", dt.getSecond());
+        } else {
+            throw new IllegalArgumentException("Unsupported format : " + s);
+        }
+
+        // record는 생성 시점에 모든 걸 결정해야 함
+        Date newDate = new Date(year, month, day);
+        newDate.setTime(hour, minute, second); // 네 setTime 메서드 호출
+        return newDate;
+    }
+
     public void setTime(String hour, String minute, String second) {
-        Date.hour = (hour.length() == 1) ? "0" + hour : hour;
-        Date.minute = (minute.length() == 1) ? "0" + minute : minute;
-        Date.second = (second.length() == 1) ? "0" + second : second;
+        this.hour = (hour.length() == 1) ? "0" + hour : hour;
+        this.minute = (minute.length() == 1) ? "0" + minute : minute;
+        this.second = (second.length() == 1) ? "0" + second : second;
     }
 
     /**
