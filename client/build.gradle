@@ -9,6 +9,10 @@ application {
     mainClass = "org.neatore.calisync.CaliSync"
 }
 
+run {
+    standardInput = System.in
+}
+
 dependencies {
     implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.24.1'
     implementation 'org.java-websocket:Java-WebSocket:1.6.0'
