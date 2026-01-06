@@ -3,13 +3,13 @@ package org.neatore.caliback.services;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import org.neatore.caliback.CaliBack;
 import org.neatore.caliback.object.Date;
-
 import org.neatore.caliback.object.PacketResponse;
+
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
-import java.util.Objects;
 
 import static org.neatore.caliback.CaliBack.dbc;
 
@@ -19,34 +19,44 @@ public class DBCService {
             e400 = new PacketResponse(400, "Bad Request"),
             e500 = new PacketResponse(500, "Internal Server Error");
 
+    private static Map<String, Object> getData(JSONObject obj) throws JSONException {
+        return new JSONObject(obj.getString("data")).toMap();
+    }
+
     public PacketResponse process(JSONObject obj) {
         try {
+            Map<String, Object> data = getData(obj);
+            Date date = Date.parseDate(data.get("date").toString());
+
             switch (obj.getString("method")) {
                 case "POST" -> {
                     try {
-                        Map<String, Object> map = new JSONObject(
-                                Objects.requireNonNull(obj.getString("data"))
-                        ).toMap();
-                        Date date = Date.parseDate(map.get("date").toString());
-                        String content = map.get("content").toString();
+                        String content = data.get("content").toString();
                         dbc.addSchedule(date, content);
                         return new PacketResponse(201, null);
                     } catch (NullPointerException e) { return e400; }
                 }
 
                 case "DELETE" -> {
-                    return e404;
+                    try {
+                        int seq = Integer.parseInt(data.get("seq").toString());
+                        dbc.removeSchedule(date, seq);
+                        return new PacketResponse(204, null);
+                    } catch (NullPointerException | NumberFormatException e) { throw new JSONException(""); }
                 }
 
                 case "GET" -> {
-                    return e404;
+                    return new PacketResponse(200, dbc.getSchedulesAsJson(date));
                 }
 
                 default -> {
                     return e404;
                 }
             }
-        } catch (JSONException e) { return e400; }
-          catch (Exception e) { return e500; }
+        } catch (IllegalArgumentException | JSONException e) { return e400; }
+          catch (Exception e) {
+            CaliBack.LOGGER.error(e);
+            return e500;
+        }
     }
 }

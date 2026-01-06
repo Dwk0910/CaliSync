@@ -1,5 +1,6 @@
 package org.neatore.calisync;
 
+import org.json.JSONObject;
 import org.neatore.calisync.packet.SignalPacket;
 
 import org.java_websocket.client.WebSocketClient;
@@ -19,13 +20,12 @@ public class Client extends WebSocketClient {
 
     @Override
     public void onMessage(String s) {
-        System.out.println(s);
+        JSONObject obj = new JSONObject(s);
+        System.out.println(obj.toString(4));
     }
 
     @Override
-    public void onOpen(ServerHandshake serverHandshake) {
-        CaliSync.LOGGER.info("Connection established.");
-    }
+    public void onOpen(ServerHandshake serverHandshake) { CaliSync.LOGGER.info("Connection established."); }
 
     @Override
     public void onClose(int i, String s, boolean b) { CaliSync.LOGGER.info("Connection closed."); }

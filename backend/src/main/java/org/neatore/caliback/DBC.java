@@ -47,8 +47,25 @@ public record DBC (String dburl, String u_mid) {
             if (rs.next()) return Analyze.getSchedules(rs);
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
+            throw new RuntimeException();
         }
         return null;
+    }
+
+    public JSONArray getSchedulesAsJson(Date date) {
+        JSONArray result = new JSONArray();
+        List<Schedule> schedules = getSchedules(date);
+        if (schedules == null) return result;
+
+        for (Schedule schedule : schedules) {
+            JSONObject obj = new JSONObject();
+            obj.put("content", schedule.content());
+            obj.put("date", schedule.date().getDate(1));
+            obj.put("isCompleted", schedule.isCompleted());
+            result.put(obj);
+        }
+
+        return result;
     }
 
     public void addSchedule(Schedule schedule) {
@@ -128,6 +145,7 @@ public record DBC (String dburl, String u_mid) {
             if (affectedRows > 0) CaliBack.LOGGER.info("Appending data has been succeed.");
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
+            throw new RuntimeException();
         }
     }
 
@@ -192,6 +210,7 @@ public record DBC (String dburl, String u_mid) {
             if (affectedRows > 0) CaliBack.LOGGER.info("Schedules on {} have been removed.", date.getDate(2));
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
+            throw new RuntimeException();
         }
     }
 
@@ -208,6 +227,7 @@ public record DBC (String dburl, String u_mid) {
             if (affectedRows > 0) CaliBack.LOGGER.info("Records on {} have been removed.", date.getDate(2));
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
+            throw new RuntimeException();
         }
     }
 }
