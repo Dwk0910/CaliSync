@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 public class CaliSync {
     public static Logger LOGGER = LogManager.getLogger(CaliSync.class);
     public static void main(String[] args) throws URISyntaxException {
-        LOGGER.info("Opening connection to CaliSync server...");
+        LOGGER.info("Opening connection to the CaliSync server...");
         Client client = new Client(new URI("ws://localhost:8080/calisync"));
         try {
             client.connectBlocking(10, TimeUnit.SECONDS);
@@ -30,8 +30,7 @@ public class CaliSync {
 
         Map<String, Object> obj = new HashMap<>();
         obj.put("date", date);
-        obj.put("content", "Test schedule");
 
-        client.sendSignal(new SignalPacket(SignalPacket.Method.POST, obj));
+        client.sendSignal(new SignalPacket(SignalPacket.Method.GET, obj));
     }
 }
