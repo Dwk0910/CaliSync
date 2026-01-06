@@ -27,8 +27,7 @@ public class Date {
         }
 
         public static String getUnixTime() {
-            Instant instant = Instant.now();
-            return Long.toString(instant.atZone(timeZone).toEpochSecond());
+            return Long.toString(Instant.now().getEpochSecond());
         }
 
         public static String format(String format) {
@@ -41,10 +40,12 @@ public class Date {
 
     /**
      * String format must be one of the following.
-     * 'yyyy-MM-dd HH:mm:ss'
-     * 'yyyy-MM-dd'
-     * 'yyyyMMdd'
-     *  or Unix timestamp (sec)
+     * <ul>
+     *  <li>'yyyy-MM-dd HH:mm:ss'</li>
+     *  <li>'yyyy-MM-dd'</li>
+     *  <li>'yyyyMMdd'</li>
+     *  <li>or Unix timestamp [UTC]</li>
+     * </ul>
      */
     public static Date parseDate(String s) {
         if (s == null || s.isEmpty()) return null;
@@ -58,21 +59,16 @@ public class Date {
             String[] timeParts = parts[1].split(":");
             year = dateParts[0]; month = dateParts[1]; day = dateParts[2];
             hour = timeParts[0]; minute = timeParts[1]; second = timeParts[2];
-        }
-        else if (s.contains("-")) { // 2. 'yyyy-MM-dd'
+        } else if (s.contains("-")) { // 2. 'yyyy-MM-dd'
             String[] dateParts = s.split("-");
             year = dateParts[0]; month = dateParts[1]; day = dateParts[2];
-        }
-        else if (s.length() == 8 && s.matches("\\d+")) { // 3. 'yyyyMMdd'
+        } else if (s.length() == 8 && s.matches("\\d+")) { // 3. 'yyyyMMdd'
             year = s.substring(0, 4);
             month = s.substring(4, 6);
             day = s.substring(6, 8);
-        }
-        else if (s.matches("\\d{10}")) { // 4. Unix timestamp (sec)
-            java.time.LocalDateTime dt = java.time.LocalDateTime.ofInstant(
-                    java.time.Instant.ofEpochSecond(Long.parseLong(s)),
-                    java.time.ZoneId.systemDefault()
-            );
+        } else if (s.matches("\\d{10}")) { // 4. Unix timestamp (sec)
+            ZonedDateTime zdt = Instant.ofEpochSecond(Long.parseLong(s)).atZone(timeZone);
+            java.time.LocalDateTime dt = zdt.toLocalDateTime();
             year = String.valueOf(dt.getYear());
             month = String.format("%02d", dt.getMonthValue());
             day = String.format("%02d", dt.getDayOfMonth());
