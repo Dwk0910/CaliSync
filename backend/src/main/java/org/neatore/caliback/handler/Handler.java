@@ -26,14 +26,17 @@ public class Handler extends TextWebSocketHandler {
     protected void handleTextMessage(@NotNull WebSocketSession session, TextMessage message) {
         JSONObject obj = new JSONObject(message.getPayload());
         PacketResponse response = dbcService.process(obj);
-        response(session, response.responseCode(), response.responseBody());
+        response(session, obj, response.responseCode(), response.responseBody());
     }
 
-    private static <T> void response(WebSocketSession session, int response_code, @Nullable T body) {
+    private static <T> void response(WebSocketSession session, JSONObject message, int response_code, @Nullable T body) {
+        JSONObject data = message.getJSONObject("data");
+
         try {
             JSONObject response = new JSONObject();
             response.put("code", response_code);
             response.put("body", body);
+            response.put("requestId", data.isNull("requestId") ? null : data.getString("requestId"));
             session.sendMessage(new TextMessage(response.toString()));
         } catch (IOException e) {
             CaliBack.LOGGER.error(e);
