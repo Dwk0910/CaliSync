@@ -81,7 +81,7 @@ public class Date {
 
         // record는 생성 시점에 모든 걸 결정해야 함
         Date newDate = new Date(year, month, day);
-        newDate.setTime(hour, minute, second); // 네 setTime 메서드 호출
+        newDate.setTime(hour, minute, second); // setTime 메서드 호출
         return newDate;
     }
 
