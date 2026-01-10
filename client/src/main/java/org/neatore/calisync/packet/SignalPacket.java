@@ -5,7 +5,7 @@ import org.json.JSONObject;
 import java.util.Map;
 
 public final class SignalPacket {
-    public enum Method { GET, POST, DELETE }
+    public enum Method { GET, UPDATE_INFO, UPDATE, POST, DELETE }
 
     private final Method type;
     private final Map<String, Object> data;
@@ -18,7 +18,7 @@ public final class SignalPacket {
     public JSONObject toJSONObject() {
         return new JSONObject()
                 .put("method", type.name())
-                .put("data", new JSONObject(data).toString());
+                .put("data", new JSONObject(data));
     }
 
     @Override
