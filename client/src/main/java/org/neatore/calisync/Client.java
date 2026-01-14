@@ -1,9 +1,9 @@
 package org.neatore.calisync;
 
-import org.neatore.calisync.packet.SignalPacket;
-
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+
+import org.neatore.calisync.packet.SignalPacket;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +35,10 @@ public class Client extends WebSocketClient {
 
     private final Map<String, CompletableFuture<JSONObject>> pendingResponses = new HashMap<>();
     public CompletableFuture<JSONObject> sendSignalWithResponse(SignalPacket obj_) {
+        return this.sendSignalWithResponse(obj_, 30);
+    }
+
+    public CompletableFuture<JSONObject> sendSignalWithResponse(SignalPacket obj_, int timeout) {
         String requestId = UUID.randomUUID().toString();
         JSONObject obj = obj_.toJSONObject();
         JSONObject data = obj.getJSONObject("data");
@@ -45,7 +49,7 @@ public class Client extends WebSocketClient {
         pendingResponses.put(requestId, future);
 
         this.sendSignal(new SignalPacket(SignalPacket.Method.valueOf(obj.getString("method")), obj.getJSONObject("data").toMap()));
-        return future.orTimeout(5, TimeUnit.SECONDS);
+        return future.orTimeout(timeout, TimeUnit.SECONDS);
     }
 
     @Override
