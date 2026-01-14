@@ -37,7 +37,7 @@ public class Handler extends TextWebSocketHandler {
             response.put("code", response_code);
             response.put("body", body);
             response.put("requestId", data.isNull("requestId") ? null : data.getString("requestId"));
-            session.sendMessage(new TextMessage(response.toString()));
+            session.sendMessage(new TextMessage(response.toString(), true));
         } catch (IOException e) {
             CaliBack.LOGGER.error(e);
         }
