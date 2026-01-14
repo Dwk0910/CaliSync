@@ -68,7 +68,7 @@ public class Date {
             day = s.substring(6, 8);
         } else if (s.matches("\\d{10}")) { // 4. Unix timestamp (sec)
             ZonedDateTime zdt = Instant.ofEpochSecond(Long.parseLong(s)).atZone(timeZone);
-            java.time.LocalDateTime dt = zdt.toLocalDateTime();
+            LocalDateTime dt = zdt.toLocalDateTime();
             year = String.valueOf(dt.getYear());
             month = String.format("%02d", dt.getMonthValue());
             day = String.format("%02d", dt.getDayOfMonth());
@@ -118,5 +118,12 @@ public class Date {
      */
     public String getUniqueId() {
         return "dkcal_mdays_" + getDate(1);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Date date) {
+            return date.getDate(3).equals(this.getDate(3));
+        } else return false;
     }
 }

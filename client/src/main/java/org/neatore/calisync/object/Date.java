@@ -119,4 +119,11 @@ public class Date {
     public String getUniqueId() {
         return "dkcal_mdays_" + getDate(1);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Date date) {
+            return date.getDate(3).equals(this.getDate(3));
+        } else return false;
+    }
 }
