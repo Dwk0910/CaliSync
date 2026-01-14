@@ -48,6 +48,10 @@ public class DBCService {
                     return new PacketResponse(200, dbc.getUpdateInfo());
                 }
 
+                case "HARD_UPDATE" -> {
+                    return new PacketResponse(200, dbc.getDownloadKey());
+                }
+
                 case "UPDATE" -> {
                     JSONArray array = new JSONArray(data.getJSONArray("targets"));
                     dbc.update(array);

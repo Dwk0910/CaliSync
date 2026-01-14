@@ -2,6 +2,7 @@ package org.neatore.caliback;
 
 import org.jetbrains.annotations.NotNull;
 
+import org.neatore.caliback.controller.HardUpdateController;
 import org.neatore.caliback.object.Date;
 import org.neatore.caliback.object.Day;
 import org.neatore.caliback.object.Schedule;
@@ -19,6 +20,7 @@ import java.sql.SQLException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public record DBC (String dburl, String u_mid) {
     public DBC(String dburl) {
@@ -87,6 +89,12 @@ public record DBC (String dburl, String u_mid) {
         }
 
         return obj;
+    }
+
+    public String getDownloadKey() {
+        String key = UUID.randomUUID().toString();
+        HardUpdateController.VALID_KEYS.put(key, System.currentTimeMillis() + 60000); // 60 seconds validity
+        return key;
     }
 
     public void update(JSONArray targets) {
