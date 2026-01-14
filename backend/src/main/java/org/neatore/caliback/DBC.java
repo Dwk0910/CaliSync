@@ -2,7 +2,9 @@ package org.neatore.caliback;
 
 import org.jetbrains.annotations.NotNull;
 
+import org.neatore.caliback.controller.HardUpdateController;
 import org.neatore.caliback.object.Date;
+import org.neatore.caliback.object.Day;
 import org.neatore.caliback.object.Schedule;
 import org.neatore.caliback.util.Analyze;
 import org.neatore.caliback.util.HistoryParser;
@@ -16,7 +18,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public record DBC (String dburl, String u_mid) {
     public DBC(String dburl) {
@@ -24,14 +28,15 @@ public record DBC (String dburl, String u_mid) {
     }
 
     private static String getUID(String dburl) {
-        String sql = "SELECT u_mid FROM \"item_table\"";
+        String sql = "SELECT u_mid FROM item_table";
         String u_mid = null;
         try (Connection conn = DriverManager.getConnection(dburl);
-            PreparedStatement pstmt = conn.prepareStatement(sql);
-            ResultSet rs = pstmt.executeQuery()) {
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
             if (rs.next()) u_mid = rs.getString("u_mid");
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
+            System.exit(-1);
         }
 
         return u_mid;
@@ -46,13 +51,122 @@ public record DBC (String dburl, String u_mid) {
             if (rs.next()) return Analyze.getSchedules(rs);
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
+            throw new RuntimeException();
         }
         return null;
     }
 
-    public void addSchedule(Date date, String content) {
-        String it_unique_id = "dkcal_mdays_" + date.getDate(1),
-                it_date = Date.Now.format("yyyy-MM-dd HH:mm:ss");
+    public JSONArray getSchedulesAsJson(Date date) {
+        JSONArray result = new JSONArray();
+        List<Schedule> schedules = getSchedules(date);
+        if (schedules == null) return result;
+
+        for (Schedule schedule : schedules) {
+            JSONObject obj = new JSONObject();
+            obj.put("content", schedule.content);
+            obj.put("date", schedule.date.getDate(1));
+            obj.put("isCompleted", schedule.isCompleted);
+            result.put(obj);
+        }
+
+        return result;
+    }
+
+    public JSONObject getUpdateInfo() {
+        JSONObject obj = new JSONObject();
+        try (Connection conn = DriverManager.getConnection(dburl);
+             PreparedStatement pstmt_last_m = conn.prepareStatement("SELECT MAX(it_mdate) AS last_modified FROM item_table;");
+             PreparedStatement pstmt_count = conn.prepareStatement("SELECT COUNT(*) AS total_count FROM item_table;")
+        ) {
+            ResultSet rs = pstmt_last_m.executeQuery();
+            if (rs.next()) obj.put("last_modified", rs.getString("last_modified"));
+
+            rs = pstmt_count.executeQuery();
+            if (rs.next()) obj.put("total_count", Integer.toString(rs.getInt("total_count")));
+        } catch (SQLException e) {
+            CaliBack.LOGGER.error(e);
+            throw new RuntimeException(e);
+        }
+
+        return obj;
+    }
+
+    public String getDownloadKey() {
+        String key = UUID.randomUUID().toString();
+        HardUpdateController.VALID_KEYS.put(key, System.currentTimeMillis() + 60000); // 60 seconds validity
+        return key;
+    }
+
+    public void update(JSONArray targets) {
+        List<Day> days = new ArrayList<>();
+        for (int i = 0; i < targets.length(); i++) {
+            JSONObject obj = targets.getJSONObject(i);
+
+            Date date = Date.parseDate(obj.getString("date"));
+            List<Schedule> schedules = new ArrayList<>();
+            JSONArray scheduleArray = obj.getJSONArray("schedules");
+            for (int j = 0; j < scheduleArray.length(); j++) {
+                JSONObject schedObj = scheduleArray.getJSONObject(j);
+                schedules.add(new Schedule(date, schedObj.getString("content")));
+            }
+            days.add(new Day(
+                    date,
+                    schedules,
+                    Date.parseDate(obj.getString("mdate")),
+                    obj.getString("bgColor"),
+                    HistoryParser.encode(obj.getJSONArray("history"))
+            ));
+        }
+        update(days);
+    }
+
+    public void update(List<Day> days) {
+        // Mission : Insert given day with whole attributes into DB (or update if already exists)
+        for (Day day : days) {
+            JSONObject dayObj = day.toJSONObject();
+            // 1차 업데이트 시도
+            try (Connection conn = DriverManager.getConnection(dburl);
+                 PreparedStatement pstmt = conn.prepareStatement("UPDATE item_table SET it_bgcolor = ?, it_content = ?, it_history = ?, it_mdate = ? WHERE it_unique_id = ?;")
+            ) {
+                StringBuilder content = new StringBuilder();
+                day.scheduleList().forEach(i -> content.append(content.isEmpty() ? i.content : "\n" + i.content));
+                pstmt.setString(1, dayObj.getString("bgColor"));
+                pstmt.setString(2, content.toString());
+                pstmt.setString(3, day.history());
+                pstmt.setString(4, dayObj.getString("mdate"));
+                pstmt.setString(5, day.date().getUniqueId());
+                int affectedRows = pstmt.executeUpdate();
+
+                // 업데이트된 행이 없으면(기존 데이터가 없으면) INSERT 시도
+                if (affectedRows == 0) {
+                    try (PreparedStatement insertPstmt = conn.prepareStatement("INSERT INTO item_table (u_mid, it_unique_id, it_bgcolor, it_content, it_history, it_cdate, it_mdate, it_mtime) VALUES (?, ?, ?, ?, ?, ?, ?, ?);")) {
+                        insertPstmt.setString(1, u_mid);
+                        insertPstmt.setString(2, day.date().getUniqueId());
+                        insertPstmt.setString(3, dayObj.getString("bgColor"));
+                        insertPstmt.setString(4, content.toString());
+                        insertPstmt.setString(5, day.history());
+                        insertPstmt.setString(6, dayObj.getString("mdate"));
+                        insertPstmt.setString(7, dayObj.getString("mdate"));
+                        insertPstmt.setInt(8, 1);
+
+                        int insertAffectedRows = insertPstmt.executeUpdate();
+                        if (insertAffectedRows > 0) CaliBack.LOGGER.info("Inserting data for {} has been succeed.", day.date().getDate(2));
+                    }
+                } else {
+                    CaliBack.LOGGER.info("Updating data for {} has been succeed.", day.date().getDate(2));
+                }
+            } catch (SQLException e) {
+                CaliBack.LOGGER.error(e);
+                throw new RuntimeException();
+            }
+        }
+    }
+
+    public void addSchedule(Schedule schedule) { addSchedule(schedule.date, schedule.content); }
+    public void addSchedule(Schedule schedule, String it_date) { addSchedule(schedule.date, schedule.content, it_date); }
+    public void addSchedule(Date date, String content) { addSchedule(date, content, Date.Now.format("yyyy-MM-dd HH:mm:ss")); }
+    public void addSchedule(Date date, String content, String it_date) {
+        String it_unique_id = "dkcal_mdays_" + date.getDate(1);
         try (Connection conn = DriverManager.getConnection(dburl)) {
             boolean exists = false;
             String tHistory, tContent = null;
@@ -123,6 +237,7 @@ public record DBC (String dburl, String u_mid) {
             if (affectedRows > 0) CaliBack.LOGGER.info("Appending data has been succeed.");
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
+            throw new RuntimeException();
         }
     }
 
@@ -140,8 +255,8 @@ public record DBC (String dburl, String u_mid) {
         int i = 1;
         boolean changed = false;
         for (Schedule schedule : schedules) {
-            if (i != seq) it_content.append(i == 1 ? schedule.content() : "\n" + schedule.content());
-            else if (!schedule.content().isEmpty()) changed = true;
+            if (i != seq) it_content.append(i == 1 ? schedule.content : "\n" + schedule.content);
+            else if (!schedule.content.isEmpty()) changed = true;
             i++;
         }
 
@@ -187,6 +302,7 @@ public record DBC (String dburl, String u_mid) {
             if (affectedRows > 0) CaliBack.LOGGER.info("Schedules on {} have been removed.", date.getDate(2));
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
+            throw new RuntimeException();
         }
     }
 
@@ -203,6 +319,7 @@ public record DBC (String dburl, String u_mid) {
             if (affectedRows > 0) CaliBack.LOGGER.info("Records on {} have been removed.", date.getDate(2));
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
+            throw new RuntimeException();
         }
     }
 }

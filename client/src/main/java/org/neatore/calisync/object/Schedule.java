@@ -1,4 +1,4 @@
-package org.neatore.caliback.object;
+package org.neatore.calisync.object;
 
 import org.json.JSONObject;
 

@@ -26,8 +26,7 @@ public class Analyze {
             Scanner scan = new Scanner(content);
 
             while (scan.hasNext()) {
-                // TODO: 취소선으로 isCompleted 판단하기
-                result.add(new Schedule(new Date(Integer.toString(date.getYear()), Integer.toString(date.getMonthValue()), Integer.toString(date.getDayOfMonth())), scan.nextLine(), false));
+                result.add(new Schedule(new Date(Integer.toString(date.getYear()), Integer.toString(date.getMonthValue()), Integer.toString(date.getDayOfMonth())), scan.nextLine()));
             }
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
