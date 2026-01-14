@@ -5,7 +5,7 @@ import org.json.JSONObject;
 import java.util.Map;
 
 public final class SignalPacket {
-    public enum Method { GET, UPDATE_INFO, UPDATE, POST, DELETE }
+    public enum Method { GET, UPDATE_INFO, HARD_UPDATE, UPDATE, POST, DELETE }
 
     private final Method type;
     private final Map<String, Object> data;
