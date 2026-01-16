@@ -11,6 +11,7 @@ import org.neatore.calisync.object.Date;
 import org.neatore.calisync.object.Day;
 import org.neatore.calisync.object.Schedule;
 import org.neatore.calisync.packet.SignalPacket;
+import org.neatore.calisync.util.CalendarProcess;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -95,7 +96,7 @@ public class DBWatcher implements Runnable {
     }
 
     // 중복 호출 방지용 플래그
-    private final AtomicBoolean isProcessing = new AtomicBoolean(false),
+    public static final AtomicBoolean isProcessing = new AtomicBoolean(false),
             hasPendingChange = new AtomicBoolean(false),
             ignore = new AtomicBoolean(false);
     private void onFileChange() {
@@ -180,11 +181,15 @@ public class DBWatcher implements Runnable {
                     client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.HARD_UPDATE, null))
                             .thenApply(res -> res.getString("body"))
                             .thenAcceptAsync(this::hardUpdate);
+                    return;
                 }
             }
         } catch (SQLException e) {
             LOGGER.error(e);
         }
+
+        // 변경사항 적용
+        CalendarProcess.refresh();
     }
 
     private void hardUpdate(String key) {
@@ -246,6 +251,7 @@ public class DBWatcher implements Runnable {
         hasPendingChange.set(false);
         ignore.set(false);
 
-        // TODO : 강제 종료했던 Calendar 재실행
+        // 변경사항 적용
+        CalendarProcess.refresh();
     }
 }
