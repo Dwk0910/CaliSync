@@ -50,14 +50,23 @@ public class DBWatcher implements Runnable {
     private final Client client;
     public DBWatcher(Client client) {
         this.client = client;
-
-        // initial update
-        CaliSync.LOGGER.info("Performing initial database sync...");
-        this.onFileChange();
     }
 
     @Override
     public void run() {
+        // initial update
+        CaliSync.LOGGER.info("Performing initial database sync...");
+        this.initialUpdate();
+
+        // 초기화 업데이트가 실행되도록 대기
+        synchronized (ignore) {
+            try {
+                while (ignore.get()) ignore.wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
         try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
             // Desktop Calendar는 일정 수정 시 기존 DB를 덮어쓰므로 ENTRY_CREATE로 쓰기 이벤트 감지
             dbDir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
@@ -81,6 +90,8 @@ public class DBWatcher implements Runnable {
                         // 이미 처리 중이면 플래그 설정 후 종료
                         if (isProcessing.get()) hasPendingChange.set(true);
                         else {
+                            isProcessing.set(true);
+                            hasPendingChange.set(false);
                             LOGGER.info("Database change detected. Sending signal to server...");
                             onFileChange();
                         }
@@ -100,23 +111,18 @@ public class DBWatcher implements Runnable {
             hasPendingChange = new AtomicBoolean(false),
             ignore = new AtomicBoolean(false);
     private void onFileChange() {
-        isProcessing.set(true);
-        hasPendingChange.set(false);
-
         // 서버로부터 마지막 수정 날짜와 전체 레코드 수 받아와서 update()로 전달
-        client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.UPDATE_INFO, null)).thenAccept(res -> {
-            try {
-                this.update(res);
-            } finally {
-                isProcessing.set(false);
-                // 처리 중에 변경 사항이 또 있었는지 확인하고 있으면 재호출
-                if (hasPendingChange.get()) onFileChange();
-            }
-        }).exceptionally(e -> {
+        JSONObject res = client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.UPDATE_INFO, null)).exceptionally(e -> {
             isProcessing.set(false);
             LOGGER.error("Failed to receive database update signal: {}", e);
             return null;
-        });
+        }).join();
+
+        try { this.update(res); } finally {
+            isProcessing.set(false);
+            // 처리 중에 변경 사항이 또 있었는지 확인하고 있으면 재호출
+            if (hasPendingChange.get()) onFileChange();
+        }
     }
 
     public void update(JSONObject serverData) {
@@ -192,12 +198,13 @@ public class DBWatcher implements Runnable {
         CalendarProcess.refresh();
     }
 
-    private void hardUpdate(String key) {
-        // TODO: HARD UPDATE 중간에는 Calendar 강제 종료 및 DB 잠금(ignore)
+    private void hardUpdate(String key, boolean... isManual) {
+        // HARD UPDATE 중간에는 Calendar 강제 종료 및 DB 잠금(ignore)
+        CalendarProcess.shutdown();
         ignore.set(true);
 
         try {
-            LOGGER.info("Downloading hard update SQL data from server...");
+            LOGGER.info("HARD UPDATE : Downloading hard update SQL data from server...");
             URL url = new URI("http://" + CaliSync.serverurl + "/hard-update/" + key).toURL();
 
             // 서버로부터 파일 다운로드 및 저장
@@ -249,9 +256,42 @@ public class DBWatcher implements Runnable {
 
         // 모든 데이터가 동기화되었으므로 queue 비우기 및 ignore 해제
         hasPendingChange.set(false);
-        ignore.set(false);
+        if (!isManual[0]) ignore.set(false);
 
         // 변경사항 적용
         CalendarProcess.refresh();
+    }
+
+    private void initialUpdate() {
+        try {
+            // WatchService registering 저지
+            ignore.set(true);
+
+            // 모든 동작은 watcherservice 등록 전에 완료해야 하므로 동기적으로 처리한다.
+            // 데이터의 기준은 서버가 되어야 하므로, WatchService가 켜지기 전의 모든 내용은 소실되고 서버와 동기화시킨다.
+            // clientCount를 받고 바로 try문을 닫아야 다음에 hard update를 할 때 db lock 에러가 뜨지 않는다.
+            long clientCount = 0L;
+            String serverCount = client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.UPDATE_INFO, null)).join().getJSONObject("body").getString("total_count");
+            try (Connection conn = DriverManager.getConnection(dburl);
+                 PreparedStatement pstmt = conn.prepareStatement("SELECT COUNT(*) AS count FROM item_table")
+            ) {
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) clientCount = Long.parseLong(rs.getString("count"));
+            } catch (SQLException e) {
+                CaliSync.LOGGER.fatal(e);
+                System.exit(-1);
+            }
+
+            if (clientCount != Long.parseLong(serverCount)) {
+                JSONObject res = client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.HARD_UPDATE, null)).join();
+                this.hardUpdate(res.getString("body"), true);
+            }
+        } finally {
+            // 레지스터링 재개
+            synchronized (ignore) {
+                ignore.set(false);
+                ignore.notifyAll();
+            }
+        }
     }
 }
