@@ -31,7 +31,16 @@ public class CalendarProcess {
                 Thread.sleep(100);
                 attempts += .1f;
             }
-            throw new Exception("Calendar Timed Out : Tried to start calendar 10 times. but Calendar didn't respond.");
+            throw new Exception("Calendar Timed Out : Tried to start calendar 100 times. but Calendar didn't respond.");
+        } catch (Exception e) {
+            CaliSync.LOGGER.error(e);
+        }
+    }
+
+    public static void shutdown() {
+        try {
+            if (!isRunning()) return;
+            new ProcessBuilder("taskkill", "/F", "/IM", process.getFileName().toString()).start().waitFor();
         } catch (Exception e) {
             CaliSync.LOGGER.error(e);
         }
