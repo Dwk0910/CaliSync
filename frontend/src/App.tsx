@@ -64,7 +64,7 @@ export default function App() {
             calendarContent[w].push(
                 <div key={cd} className={clsx(
                     "flex-1 text-center border-b border-neutral-700 h-20 p-1 pt-2",
-                    now.toDateString() === new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), showingCalendar.getDay(), rd).toDateString() && "bg-blue-300/20",
+                    now.toDateString() === new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), rd).toDateString() && "bg-blue-300/20",
                     satList.includes(rd) && "text-blue-500",
                     sunList.includes(rd) && "text-red-500"
                 )} onClick={() => setCurrentDay(rd)}>{rd}</div>
@@ -127,22 +127,22 @@ export default function App() {
                     <FaPlus className={"ml-5"}/>
                 </div>
                 <div className={"flex m-5 justify-center"}>
-                    <div className={"flex mt-auto mr-10 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
+                    <div className={"flex mt-auto mr-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
                         setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() - 1, showingCalendar.getDate()));
                     }}>
                         <FaArrowLeft/>
                     </div>
-                    <div className={"flex flex-col font-suite items-center h-15"}>
+                    <div className={"flex flex-col justify-end font-suite items-center h-15 mt-5"}>
                         <span className={"text-gray-300 w-20 text-center"}>{ dateInfo.currentYear }년</span>
                         <span className={"-mt-1 text-[2rem] font-bold w-20 text-center"}>{ dateInfo.currentMonth }월</span>
                     </div>
-                    <div className={"flex mt-auto ml-10 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
+                    <div className={"flex mt-auto ml-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
                         setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() + 1, showingCalendar.getDate()));
                     }}>
                         <FaArrowRight/>
                     </div>
                 </div>
-                <div className={"flex flex-col mt-5 font-suite"}>
+                <div className={"flex flex-col mt-10 font-suite"}>
                     <div className={"flex w-full border-b border-gray-400 pb-2 font-bold text-[1.2rem]"}>
                         <span className={"flex-1 text-center text-red-400"}>일</span>
                         <span className={"flex-1 text-center"}>월</span>
