@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useState } from 'react';
 
+import { Lunar } from 'lunar-javascript';
 import { clsx } from 'clsx';
 
 import { FaPlus, FaArrowLeft, FaArrowRight } from "react-icons/fa6";
@@ -11,11 +12,22 @@ import { MdMyLocation } from "react-icons/md";
 import MoveTo from "./popup/MoveTo";
 
 export default function App() {
-    const [currentDate, setCurrentDate] = useState<Date>(new Date());
+    const [showingCalendar, setShowingCalendar] = useState<Date>(new Date());
+    const [currentDay, setCurrentDay] = useState<number>(0);
 
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const day = currentDate.getDate();
+    // popup 설정
+    const [popup, setPopup] = useState<{open: boolean, content: React.ReactNode}>({
+        open: false,
+        content: <></>
+    });
+
+    const now = new Date();
+
+    const lunar = Lunar.fromDate(showingCalendar);
+
+    const year = showingCalendar.getFullYear();
+    const month = showingCalendar.getMonth();
+    const day = showingCalendar.getDate();
 
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
@@ -28,6 +40,16 @@ export default function App() {
         dayCount: totalDays
     };
 
+    // 토요일 일요일 구분
+    let sat = (7 - dateInfo.startDay);
+    let sun = (8 - dateInfo.startDay);
+    const satList = [], sunList = [];
+
+    if (sun == 8) sunList.push(1);
+
+    for (; sat <= dateInfo.dayCount; sat += 7) { satList.push(sat); }
+    for (; sun <= dateInfo.dayCount; sun += 7) { sunList.push(sun); }
+
     const calendarContent: React.ReactNode[][] = [];
     let cd = 0, rd = 1, w = 0;
     for (; rd <= dateInfo.dayCount; cd++) {
@@ -36,12 +58,16 @@ export default function App() {
         // Add day component
         if (cd < dateInfo.startDay) {
             calendarContent[w].push(
-                <div key={`empty-${cd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1"}></div>
+                <div key={`empty-${cd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 pt-2"}></div>
             );
-        }
-        else {
+        } else {
             calendarContent[w].push(
-                <div key={cd} className={"flex-1 text-center border-b border-neutral-700 h-20 p-1"}>{rd}</div>
+                <div key={cd} className={clsx(
+                    "flex-1 text-center border-b border-neutral-700 h-20 p-1 pt-2",
+                    now.toDateString() === new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), showingCalendar.getDay(), rd).toDateString() && "bg-blue-300/20",
+                    satList.includes(rd) && "text-blue-500",
+                    sunList.includes(rd) && "text-red-500"
+                )} onClick={() => setCurrentDay(rd)}>{rd}</div>
             );
             rd++;
         }
@@ -54,17 +80,18 @@ export default function App() {
         rd = 1;
         while (calendarContent[w].length < 7) {
             calendarContent[w].push(
-                <div key={`fill-${currentDate}-${rd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 text-center text-neutral-700"}>{rd}</div>
+                <div key={`fill-${showingCalendar}-${rd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 pt-2 text-center text-neutral-700"} onClick={() => {
+                    setShowingCalendar((prev) => {
+                        const nextDate = new Date(prev);
+                        nextDate.setMonth(prev.getMonth() + 1);
+                        return nextDate;
+                    });
+                    setCurrentDay(rd);
+                }}>{rd}</div>
             );
             rd++;
         }
     }
-
-    // popup 설정
-    const [popup, setPopup] = useState<{open: boolean, content: React.ReactNode}>({
-        open: false,
-        content: <></>
-    });
 
     return (
         <>
@@ -92,16 +119,16 @@ export default function App() {
                     <div className={"w-40 h-10 flex items-center justify-center cursor-pointer"} onClick={() => window.location.assign(".")}>
                         <span className={"font-suite"}>Desktop Calendar</span>
                     </div>
-                    <MdMyLocation onClick={() => setCurrentDate(new Date())}/>
+                    <MdMyLocation onClick={() => setShowingCalendar(now)}/>
                     <IoTerminalOutline className={"ml-5"}/>
                     <FaArrowRight className={"ml-5"} onClick={(() => {
-                        setPopup({open: true, content: <MoveTo date={ currentDate } setDate={ setCurrentDate } close={() => { setPopup((prev) => ({...prev, open: false}))}}/>})
+                        setPopup({open: true, content: <MoveTo date={ showingCalendar } setDate={ setShowingCalendar } close={() => { setPopup((prev) => ({...prev, open: false}))}}/>})
                     })}/>
                     <FaPlus className={"ml-5"}/>
                 </div>
                 <div className={"flex m-5 justify-center"}>
                     <div className={"flex mt-auto mr-10 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
-                        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, currentDate.getDate()));
+                        setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() - 1, showingCalendar.getDate()));
                     }}>
                         <FaArrowLeft/>
                     </div>
@@ -110,7 +137,7 @@ export default function App() {
                         <span className={"-mt-1 text-[2rem] font-bold w-20 text-center"}>{ dateInfo.currentMonth }월</span>
                     </div>
                     <div className={"flex mt-auto ml-10 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
-                        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, currentDate.getDate()));
+                        setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() + 1, showingCalendar.getDate()));
                     }}>
                         <FaArrowRight/>
                     </div>
@@ -128,7 +155,7 @@ export default function App() {
                     {
                         calendarContent.map((item, idx) => {
                             return (
-                                <div key={idx} className={"flex font-suite mt-1"}>
+                                <div key={idx} className={"flex font-suite"}>
                                     {item}
                                 </div>
                             );
