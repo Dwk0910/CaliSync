@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+@font-face {
+    font-family: "suite";
+    src: url("./assets/fonts/suite.woff2");
+}
+
+.font-suite {
+    font-family: "suite", monospace;
+}
