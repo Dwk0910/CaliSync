@@ -12,8 +12,8 @@ public class Date {
 
     public Date(String year, String month, String day) {
         this.year = year;
-        this.month = month;
-        this.day = day;
+        this.month = month.length() == 1 ? "0" + month : month;
+        this.day = day.length() == 1 ? "0" + day : day;
     }
 
     // ** DEFUALT ZONE ID **

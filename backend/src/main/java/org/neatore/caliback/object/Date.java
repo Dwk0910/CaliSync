@@ -7,13 +7,13 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Date {
-    private final String year, month, day;
+    public final String year, month, day;
     private String hour, minute, second;
 
     public Date(String year, String month, String day) {
         this.year = year;
-        this.month = month;
-        this.day = day;
+        this.month = month.length() == 1 ? "0" + month : month;
+        this.day = day.length() == 1 ? "0" + day : day;
     }
 
     // ** DEFUALT ZONE ID **
