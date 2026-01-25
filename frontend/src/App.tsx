@@ -83,10 +83,14 @@ export default function App() {
     
     useEffect(() => {
         setLoadingSchedules(true);
+        // noinspection JSUnusedGlobalSymbols
         $.ajax({
             url: backend + `/webservice/specialdays/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
             type: "application/json",
             method: "GET",
+            error: () => {
+                setLoadingError(true);
+            }
         }).then((e: string) => {
             const data: Array<SpecialDay> = JSON.parse(e);
             if (data.length == 0) setLoadingError(true);
@@ -269,7 +273,7 @@ export default function App() {
                                         clsx(
                                         "inline-block px-2 h-5 text-[0.9rem] rounded-[5px]",
                                             i.type === "holi" && "bg-red-700 text-red-100 font-bold",
-                                            i.type === "rest" && "bg-red-400 font-bold",
+                                            i.type === "rest" && "bg-red-500 font-bold",
                                             i.type === "anni" && "bg-purple-400 text-black",
                                             i.type === "tfst" && "bg-[#F9A825]",
                                             i.type === "other" && "bg-gray-400 text-black"

@@ -30,7 +30,7 @@ export default function MoveTo({ date, setDate, close }: { date: Date, setDate: 
                     <span className={"font-suite text-gray-400"}>다음 달력으로 이동하기</span>
                     <div className={"mt-5"}>
                         <div className={"flex items-center"}>
-                            <input type={"number"} className={"w-12 h-12 font-suite text-[1.2rem] border-b border-gray-400 outline-none"} value={!Number.isNaN(Number(year)) ? year : ''} onChange={(e) => setYear(parseInt(e.target.value))} />
+                            <input type={"number"} className={"w-14 h-12 font-suite text-center text-[1.2rem] border-b border-gray-400 outline-none"} value={!Number.isNaN(Number(year)) ? year : ''} onChange={(e) => setYear(parseInt(e.target.value))} />
                             <span className={"font-suite font-bold ml-2 text-[1.1rem]"}>년</span>
                             <input type={"number"} className={"w-10 h-12 font-suite text-[2rem] font-bold text-center ml-2 border-b border-gray-400 outline-none"} value={!Number.isNaN(Number(month)) ? month + 1 : ''} onChange={(e) => setMonth(parseInt(e.target.value) - 1)} />
                             <span className={"font-suite ml-2 text-[2rem]"}>월</span>
