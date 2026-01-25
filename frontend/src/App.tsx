@@ -1,5 +1,6 @@
 import * as React from "react";
-import { useState } from 'react';
+import $ from 'jquery';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Lunar } from 'lunar-javascript';
 import { clsx } from 'clsx';
@@ -12,18 +13,40 @@ import { MdMyLocation } from "react-icons/md";
 import MoveTo from "./popup/MoveTo";
 
 export default function App() {
+    const backend = import.meta.env.VITE_API_BACKEND_ADDRESS;
+
     const [showingCalendar, setShowingCalendar] = useState<Date>(new Date());
     const [currentDay, setCurrentDay] = useState<number>(0);
+    const [scheduleOpen, setScheduleOpen] = useState<boolean>(false);
+
+    const [now] = useState<Date>(() => new Date());
+
+    // getDay (요일 구하기)
+    const getDay: (date: Date) => React.ReactNode = (date) => {
+        let result;
+        switch (date.getDay()) {
+            case 0: result = (<span className={"font-suite text-red-400"}>일요일</span>); break;
+            case 1: result = (<span className={"font-suite text-white"}>월요일</span>); break;
+            case 2: result = (<span className={"font-suite text-white"}>화요일</span>); break;
+            case 3: result = (<span className={"font-suite text-white"}>수요일</span>); break;
+            case 4: result = (<span className={"font-suite text-white"}>목요일</span>); break;
+            case 5: result = (<span className={"font-suite text-white"}>금요일</span>); break;
+            case 6: result = (<span className={"font-suite text-blue-500"}>토요일</span>); break;
+            default: result = (<span>UNDEFINED : {date.getDay()}</span>)
+        }
+
+        return result;
+    }
+
+    const simplifyDateString: (year: number, month: number, day: number) => string = (year, month, day) => {
+        return `${year}${(month + 1).toString().length == 1 ? ("0" + (month + 1).toString()) : (month + 1).toString()}${day.toString().length == 1 ? ("0" + day.toString()) : day.toString()}`
+    }
 
     // popup 설정
     const [popup, setPopup] = useState<{open: boolean, content: React.ReactNode}>({
         open: false,
         content: <></>
     });
-
-    const now = new Date();
-
-    const lunar = Lunar.fromDate(showingCalendar);
 
     const year = showingCalendar.getFullYear();
     const month = showingCalendar.getMonth();
@@ -40,61 +63,124 @@ export default function App() {
         dayCount: totalDays
     };
 
-    // 토요일 일요일 구분
-    let sat = (7 - dateInfo.startDay);
-    let sun = (8 - dateInfo.startDay);
-    const satList = [], sunList = [];
-
-    if (sun == 8) sunList.push(1);
-
-    for (; sat <= dateInfo.dayCount; sat += 7) { satList.push(sat); }
-    for (; sun <= dateInfo.dayCount; sun += 7) { sunList.push(sun); }
-
-    const calendarContent: React.ReactNode[][] = [];
-    let cd = 0, rd = 1, w = 0;
-    for (; rd <= dateInfo.dayCount; cd++) {
-        if (!calendarContent[w]) calendarContent[w] = [];
-
-        // Add day component
-        if (cd < dateInfo.startDay) {
-            calendarContent[w].push(
-                <div key={`empty-${cd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 pt-2"}></div>
-            );
-        } else {
-            calendarContent[w].push(
-                <div key={cd} className={clsx(
-                    "flex-1 text-center border-b border-neutral-700 h-20 p-1 pt-2",
-                    now.toDateString() === new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), rd).toDateString() && "bg-blue-300/20",
-                    satList.includes(rd) && "text-blue-500",
-                    sunList.includes(rd) && "text-red-500"
-                )} onClick={() => setCurrentDay(rd)}>{rd}</div>
-            );
-            rd++;
-        }
-
-        if (calendarContent[w].length === 7) w++;
+    // close function for Popup classes
+    const close = () => {
+        setPopup((prev) => ({...prev, open: false}));
     }
 
-    // 마지막 주 일수가 부족할 경우 추가
-    if (calendarContent[w] && calendarContent[w].length > 0) {
-        rd = 1;
-        while (calendarContent[w].length < 7) {
-            calendarContent[w].push(
-                <div key={`fill-${showingCalendar}-${rd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 pt-2 text-center text-neutral-700"} onClick={() => {
-                    setShowingCalendar((prev) => {
-                        const nextDate = new Date(prev);
-                        nextDate.setMonth(prev.getMonth() + 1);
-                        return nextDate;
-                    });
-                    setCurrentDay(rd);
-                }}>{rd}</div>
-            );
-            rd++;
-        }
+    const [specialDays, setSpecialDays] = useState<Array<SpecialDay>>([]);
+
+    // 백엔드 서버 통신 시도 및 국가 이벤트, 사용자 이벤트 호출하기
+
+    // Schedules & Events
+    type SpecialDay = {
+        name: string;
+        type: string;
+        date: string;
     }
+    
+    useEffect(() => {
+        $.ajax({
+            url: backend + `/webservice/specialdays/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
+            type: "application/json",
+            method: "GET"
+        }).then((e: string) => {
+            const data: Array<SpecialDay> = JSON.parse(e);
+            setSpecialDays(data);
+        })
+    }, [backend, showingCalendar]);
+
+    // 달력 만들기
+    const calendarContent: React.ReactNode[][] = useMemo(() => {
+        const calendarContent_: React.ReactNode[][] = [];
+
+        const now = new Date();
+
+        // 토요일 일요일
+        let sat = (7 - dateInfo.startDay);
+        let sun = (8 - dateInfo.startDay);
+        const satList = [], sunList = [];
+
+        if (sun == 8) sunList.push(1);
+
+        for (; sat <= dateInfo.dayCount; sat += 7) { satList.push(sat); }
+        for (; sun <= dateInfo.dayCount; sun += 7) { sunList.push(sun); }
+
+        // 1. 이번 달 날짜 채우기 (빈 칸 포함)
+        // cd가 startDay보다 작을 때는 빈 칸을 넣고, 그 이후부터 rd를 증가시킴
+        let cd = 0, rd = 1, w = 0;
+        while (rd <= dateInfo.dayCount) {
+            if (!calendarContent_[w]) calendarContent_[w] = [];
+
+            if (cd < dateInfo.startDay) {
+                calendarContent_[w].push(
+                    <div key={`empty-${cd}`} className="flex-1 border-b border-neutral-700 h-20 p-1 pt-2"></div>
+                );
+            } else {
+                // 클로저 문제 방지를 위해 현재 rd 값을 상수로 고정
+                const day = rd;
+                calendarContent_[w].push(
+                    <div key={`day-${day}`} className={clsx(
+                        "flex-1 text-center border-b border-neutral-700 h-20 p-1 pt-2",
+                        now.toDateString() === new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), day).toDateString() && "bg-blue-300/20",
+                        satList.includes(day) && "text-blue-500",
+                        (sunList.includes(day) || specialDays.find((i) => (i.date === simplifyDateString(showingCalendar.getFullYear(), showingCalendar.getMonth(), day) && ((i.type == "holi" && i.name != "제헌절") || i.type == "rest")))) && "text-red-500",
+                    )} onClick={() => {
+                        setCurrentDay(day);
+                        setScheduleOpen(true);
+                    }}>{day}</div>
+                );
+                rd++;
+            }
+
+            cd++; // 무한 루프 방지를 위해 cd는 항상 증가
+            if (calendarContent_[w].length === 7) w++;
+        }
+
+        // 2. 마지막 주 빈 칸을 다음 달 날짜로 채우기
+        if (calendarContent_[w] && calendarContent_[w].length > 0) {
+            let nextMonthDay = 1;
+            while (calendarContent_[w].length < 7) {
+                const day = nextMonthDay;
+                calendarContent_[w].push(
+                    <div key={`fill-${day}`} className="flex-1 border-b border-neutral-700 h-20 p-1 pt-2 text-center text-neutral-700"
+                         onClick={() => {
+                             setShowingCalendar((prev) => {
+                                 const nextDate = new Date(prev);
+                                 nextDate.setMonth(prev.getMonth() + 1);
+                                 return nextDate;
+                             });
+                             setCurrentDay(day);
+                             setScheduleOpen(true);
+                         }}>
+                        {day}
+                    </div>
+                );
+                nextMonthDay++;
+            }
+        }
+
+        // 3. return
+        return calendarContent_;
+    }, [dateInfo.startDay, dateInfo.dayCount, showingCalendar, specialDays]);
+
+    const [daypopup_button_disabled, set_daypopup_button_disabled] = useState<boolean>(true);
 
     return (
         <>
+            {/*Loading Screen*/}
+            {
+                specialDays.length == 0 && (
+                    <div className={"fixed w-screen h-screen flex justify-center items-center bg-black/70"}>
+                        <div className={"flex flex-col p-5 w-70 h-25 bg-neutral-700 rounded-lg"}>
+                            <span className={"font-suite text-[1.2rem] text-white"}>로딩 중</span>
+                            <span className={"font-suite text-[0.9rem] text-gray-400"}>서버와 통신 중입니다...</span>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/*General Popup*/}
             <div className={clsx(
                 "fixed w-screen h-screen",
                 "flex flex-col justify-end",
@@ -106,7 +192,7 @@ export default function App() {
                     "fixed w-screen h-[50%] bg-neutral-700",
                     "transition-all duration-200 ease-in-out",
                     "pt-6 px-6 relative",
-                    popup.open ? "mb-0" : "-mb-[100%]"
+                    popup.open ? "mb-0" : "-mb-[100vh]"
                 )} onClick={(event) => event.stopPropagation()}>
                     <div className={"absolute w-15 h-15 right-0 text-[2.5rem] text-white"}>
                         <IoClose onClick={() => setPopup((prev) => ({...prev, open: false}))}/>
@@ -114,6 +200,87 @@ export default function App() {
                     { popup.content }
                 </div>
             </div>
+
+            {/*Schedule Setting Popup (Day popup)*/}
+            <div className={clsx(
+                "fixed w-screen h-screen",
+                "flex flex-col justify-end",
+                "transition-colors duration-200 ease-in-out",
+                scheduleOpen && "bg-black/70",
+                !scheduleOpen && "pointer-events-none"
+            )} onClick={() => setScheduleOpen(false)}>
+                <div className={clsx(
+                    "fixed w-screen h-150 bg-neutral-700",
+                    "transition-all duration-300 ease-in-out",
+                    "pt-6 px-6 relative",
+                    "flex flex-col justify-between",
+                    scheduleOpen ? "mb-0" : "-mb-150"
+                )} onClick={(event) => event.stopPropagation()}>
+                    <div className={"flex flex-col font-suite text-white"}>
+                        <span className={"mx-auto mb-3 text-white text-[1rem]"}>일정 수정</span>
+                        <span className={"text-[1.5rem] text-gray-300"}>{ showingCalendar.getFullYear() }년</span>
+                        <div>
+                            <span className={"text-[2rem]"}>
+                                <span>{ showingCalendar.getMonth() + 1 }월</span>
+                                <span className={"ml-2"}>{ currentDay }일</span>
+                            </span>
+                            {(() => {
+                                const date = new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), currentDay);
+                                const lunar = Lunar.fromDate(date);
+                                return (
+                                    <span className={"ml-3 text-gray-400"}>{ getDay(date) }<span className={"mx-2"}>·</span>(음) { lunar.getMonth() }월 { lunar.getDay() }일</span>
+                                )
+                            })()}
+                        </div>
+                        <div className={"flex gap-2 flex-wrap mt-1"}>
+                            {now.getFullYear() == showingCalendar.getFullYear() && now.getMonth() == showingCalendar.getMonth() && now.getDate() == currentDay && (
+                                <div className={"inline-block px-2 h-5 text[0.9rem] rounded-[5px] bg-blue-900 text-white font-bold"}>
+                                    오늘
+                                </div>
+                            )}
+                            {specialDays.map((i, idx) => {
+                                if (i.date === simplifyDateString(showingCalendar.getFullYear(), showingCalendar.getMonth(), currentDay)) {
+                                    return (
+                                        <div key={`specialday-${idx}`} className={
+                                            clsx(
+                                            "inline-block px-2 h-5 text-[0.9rem] rounded-[5px]",
+                                                i.type === "holi" && "bg-red-700 text-red-100 font-bold",
+                                                i.type === "rest" && "bg-red-400 font-bold",
+                                                i.type === "anni" && "bg-purple-400 text-black",
+                                                i.type === "tfst" && "bg-[#F9A825]",
+                                                i.type === "other" && "bg-gray-400 text-black"
+                                            )
+                                        }>{i.name}</div>
+                                    );
+                                }
+                            })}
+                        </div>
+                    </div>
+                    <div className={"flex"}>
+                        <div className={clsx(
+                            "flex justify-center items-center w-[50%] h-12 rounded-lg",
+                            "transition-all duration-200 ease-in-out mb-10 border border-gray-600",
+                            "bg-neutral-500"
+                        )} onClick={() => {
+                            setScheduleOpen(false);
+                        }}>
+                            <span className={"font-suite text-xl"}>취소</span>
+                        </div>
+                        <div className={clsx(
+                            "flex justify-center items-center ml-5 w-[50%] h-12 rounded-lg",
+                            "transition-all duration-200 ease-in-out mb-10",
+                            daypopup_button_disabled ? "bg-neutral-600" : "bg-blue-500")
+                        } onClick={() => {
+                            if (daypopup_button_disabled) return;
+                            setScheduleOpen(false);
+                        }}>
+                            <span className={"font-suite text-xl"}>저장</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/*Calendar*/}
             <div className={"w-screen h-screen bg-neutral-800 text-white"}>
                 <div className={"flex items-center w-full bg-neutral-700"}>
                     <div className={"w-40 h-10 flex items-center justify-center cursor-pointer"} onClick={() => window.location.assign(".")}>
@@ -122,7 +289,7 @@ export default function App() {
                     <MdMyLocation onClick={() => setShowingCalendar(now)}/>
                     <IoTerminalOutline className={"ml-5"}/>
                     <FaArrowRight className={"ml-5"} onClick={(() => {
-                        setPopup({open: true, content: <MoveTo date={ showingCalendar } setDate={ setShowingCalendar } close={() => { setPopup((prev) => ({...prev, open: false}))}}/>})
+                        setPopup({open: true, content: <MoveTo date={ showingCalendar } setDate={ setShowingCalendar } close={ close }/>})
                     })}/>
                     <FaPlus className={"ml-5"}/>
                 </div>
