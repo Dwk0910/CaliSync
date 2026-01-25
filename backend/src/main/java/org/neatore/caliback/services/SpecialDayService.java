@@ -149,6 +149,8 @@ public class SpecialDayService {
      * @return returns list of special days in that month
      */
     public Set<SpecialDay> getSpecialDays(Date date) {
+        if ((2004 > Integer.parseInt(date.year)) || (Integer.parseInt(date.year) > Integer.parseInt(Date.Now.toDate().year) + 1)) return new LinkedHashSet<>();
+
         update(date.year);
 
         Set<SpecialDay> specialDays = new LinkedHashSet<>();

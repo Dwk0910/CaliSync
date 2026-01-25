@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import org.neatore.caliback.CaliBack;
 import org.neatore.caliback.object.Date;
+import org.neatore.caliback.object.SpecialDay;
 import org.neatore.caliback.services.SpecialDayService;
 
 import java.io.IOException;
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
@@ -46,26 +48,30 @@ public class WebServiceController {
         } catch (IOException | JSONException ignored) {}
 
         // serviceResult <- customData + additionally
-        JSONArray serviceResult = new JSONArray(Stream.concat(
-                specialDayService.getSpecialDays(new Date(year, month, "0"))
+        Set<SpecialDay> serviceResult = specialDayService.getSpecialDays(new Date(year, month, "0"));
+        JSONArray result = new JSONArray(Stream.concat(
+                serviceResult
                         .stream()
                         .map(d -> {
-                            JSONObject result = new JSONObject();
+                            JSONObject i = new JSONObject();
                             // MMdd
                             String custom_data_search_query = d.date().substring(4, 8);
 
-                            if (customData.get() != null && customData.get().containsKey(custom_data_search_query)) result.put("name", customData.get().get(custom_data_search_query).toString());
-                            else result.put("name", d.name());
+                            if (customData.get() != null && customData.get().containsKey(custom_data_search_query)) i.put("name", customData.get().get(custom_data_search_query).toString());
+                            else i.put("name", d.name());
 
-                            result.put("date", d.date());
-                            result.put("type", d.type());
+                            i.put("date", d.date());
+                            i.put("type", d.type());
 
-                            return result;
+                            return i;
                         }),
                 additionally.get().toList()
                         .stream()
                         .map(d -> {
                             // ** RETURN NULL IF THERE IS NO DATA TO RETURN **
+
+                            // 선행 과정에서 에러가 발생한 것.
+                            if (serviceResult.isEmpty()) return null;
 
                             JSONObject i = new JSONObject();
 
@@ -74,23 +80,23 @@ public class WebServiceController {
                                 raw.forEach((k, v) -> i.put(k.toString(), v));
                             }
 
-                            JSONObject result = null;
+                            JSONObject j = null;
 
                             // MMdd -> MM
                             String custom_data_search_query = i.getString("date").substring(0, 2);
 
                             if (custom_data_search_query.equals(month.length() == 1 ? "0" + month : month)) {
-                                result = new JSONObject();
-                                result.put("name", i.getString("name"));
-                                result.put("date", year + i.getString("date"));
-                                result.put("type", i.getString("type"));
+                                j = new JSONObject();
+                                j.put("name", i.getString("name"));
+                                j.put("date", year + i.getString("date"));
+                                j.put("type", i.getString("type"));
                             }
 
-                            return result;
+                            return j;
                         })
                         .filter(Objects::nonNull)
         ).toList());
 
-        return ResponseEntity.ok(serviceResult.toString(4));
+        return ResponseEntity.ok(result.toString(4));
     }
 }
