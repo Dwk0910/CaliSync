@@ -189,7 +189,7 @@ export default function App() {
         };
     }, [currentDay, showingCalendar, specialDays]);
 
-    const [daypopup_button_disabled, set_daypopup_button_disabled] = useState<boolean>(true);
+    const [daypopup_button_active, set_daypopup_button_active] = useState<boolean>(true);
 
     return (
         <>
@@ -292,9 +292,9 @@ export default function App() {
                         <div className={clsx(
                             "flex justify-center items-center ml-5 w-[50%] h-12 rounded-lg",
                             "transition-all duration-200 ease-in-out mb-10",
-                            daypopup_button_disabled ? "bg-neutral-600" : "bg-blue-500")
+                            daypopup_button_active ? "bg-green-600/90" : "bg-neutral-600")
                         } onClick={() => {
-                            if (daypopup_button_disabled) return;
+                            if (daypopup_button_active) return;
                             setScheduleOpen(false);
                         }}>
                             <span className={"font-suite text-xl"}>저장</span>
