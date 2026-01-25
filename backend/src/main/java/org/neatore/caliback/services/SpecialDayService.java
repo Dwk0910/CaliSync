@@ -25,7 +25,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URISyntaxException;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Service
@@ -138,8 +138,8 @@ public class SpecialDayService {
 
             return days;
         } catch (IOException | JSONException | URISyntaxException e) {
-            CaliBack.LOGGER.fatal("SpecialDayService getItemFromURL error : {}", e);
-            throw new RuntimeException(e);
+            CaliBack.LOGGER.fatal("SpecialDayService getItemFromURL error : ", e);
+            return new JSONArray();
         }
     }
 
@@ -151,7 +151,7 @@ public class SpecialDayService {
     public Set<SpecialDay> getSpecialDays(Date date) {
         update(date.year);
 
-        Set<SpecialDay> specialDays = new HashSet<>();
+        Set<SpecialDay> specialDays = new LinkedHashSet<>();
         JSONObject data_ = data.getJSONObject(date.year);
 
         // 'yyyyMM'
