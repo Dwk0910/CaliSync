@@ -7,6 +7,8 @@ import { clsx } from 'clsx';
 
 import { FaPlus, FaArrowLeft, FaArrowRight } from "react-icons/fa6";
 import { IoTerminalOutline, IoClose } from "react-icons/io5";
+import { CiWarning } from 'react-icons/ci'
+
 import { MdMyLocation } from "react-icons/md";
 
 // popups
@@ -22,20 +24,18 @@ export default function App() {
     const [now] = useState<Date>(() => new Date());
 
     // getDay (요일 구하기)
-    const getDay: (date: Date) => React.ReactNode = (date) => {
-        let result;
-        switch (date.getDay()) {
-            case 0: result = (<span className={"font-suite text-red-400"}>일요일</span>); break;
-            case 1: result = (<span className={"font-suite text-white"}>월요일</span>); break;
-            case 2: result = (<span className={"font-suite text-white"}>화요일</span>); break;
-            case 3: result = (<span className={"font-suite text-white"}>수요일</span>); break;
-            case 4: result = (<span className={"font-suite text-white"}>목요일</span>); break;
-            case 5: result = (<span className={"font-suite text-white"}>금요일</span>); break;
-            case 6: result = (<span className={"font-suite text-blue-500"}>토요일</span>); break;
-            default: result = (<span>UNDEFINED : {date.getDay()}</span>)
+    const getDay: (date: Date, isHoliday: boolean) => React.ReactNode = (date, isHoliday) => {
+        const style: (idx: number) => string = (idx) => {
+            if (isHoliday) return "text-red-400";
+            switch (idx) {
+                case 0: return "text-red-400";
+                case 6: return "text-blue-500";
+                default: return "text-white";
+            }
         }
 
-        return result;
+        const days = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+        return (<span className={"font-suite " + style(date.getDay())}>{days[date.getDay()]}</span>);
     }
 
     const simplifyDateString: (year: number, month: number, day: number) => string = (year, month, day) => {
@@ -68,6 +68,8 @@ export default function App() {
         setPopup((prev) => ({...prev, open: false}));
     }
 
+    const [loadingError, setLoadingError] = useState<boolean>(false);
+    const [loadingSchedules, setLoadingSchedules] = useState<boolean>(true);
     const [specialDays, setSpecialDays] = useState<Array<SpecialDay>>([]);
 
     // 백엔드 서버 통신 시도 및 국가 이벤트, 사용자 이벤트 호출하기
@@ -80,12 +82,15 @@ export default function App() {
     }
     
     useEffect(() => {
+        setLoadingSchedules(true);
         $.ajax({
             url: backend + `/webservice/specialdays/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
             type: "application/json",
-            method: "GET"
+            method: "GET",
         }).then((e: string) => {
             const data: Array<SpecialDay> = JSON.parse(e);
+            if (data.length == 0) setLoadingError(true);
+            else setLoadingError(false);
             setSpecialDays(data);
         })
     }, [backend, showingCalendar]);
@@ -160,24 +165,44 @@ export default function App() {
             }
         }
 
-        // 3. return
+        // 3. set loading state to false
+        setLoadingSchedules(false);
+
+        // 4. return
         return calendarContent_;
     }, [dateInfo.startDay, dateInfo.dayCount, showingCalendar, specialDays]);
+
+    // currentDay에 해당하는 Special Day 및 공휴일 여부 구해두기
+    const current_holi_info: { isHoliday: boolean, specdays: Array<SpecialDay> } = useMemo(() => {
+        let haveHoliday: boolean = false;
+        const specialDays_: Array<SpecialDay> = [];
+        for (const item of specialDays) {
+            if (item.date == simplifyDateString(showingCalendar.getFullYear(), showingCalendar.getMonth(), currentDay)) {
+                specialDays_.push(item);
+                if (item.type === "holi" || item.date === "rest") haveHoliday = true;
+            }
+        }
+
+        return {
+            isHoliday: haveHoliday,
+            specdays: specialDays_,
+        };
+    }, [currentDay, showingCalendar, specialDays]);
 
     const [daypopup_button_disabled, set_daypopup_button_disabled] = useState<boolean>(true);
 
     return (
         <>
-            {/*Loading Screen*/}
             {
-                specialDays.length == 0 && (
-                    <div className={"fixed w-screen h-screen flex justify-center items-center bg-black/70"}>
-                        <div className={"flex flex-col p-5 w-70 h-25 bg-neutral-700 rounded-lg"}>
-                            <span className={"font-suite text-[1.2rem] text-white"}>로딩 중</span>
-                            <span className={"font-suite text-[0.9rem] text-gray-400"}>서버와 통신 중입니다...</span>
-                        </div>
-                    </div>
-                )
+                // 스크린 블로킹 버전 Loading screen
+                // loadingSchedules && (
+                //     <div className={"fixed w-screen h-screen flex justify-center items-center bg-black/70"}>
+                //         <div className={"flex flex-col p-5 w-70 h-25 bg-neutral-700 rounded-lg"}>
+                //             <span className={"font-suite text-[1.2rem] text-white"}>로딩 중</span>
+                //             <span className={"font-suite text-[0.9rem] text-gray-400"}>서버와 통신 중입니다...</span>
+                //         </div>
+                //     </div>
+                // )
             }
 
             {/*General Popup*/}
@@ -228,7 +253,7 @@ export default function App() {
                                 const date = new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), currentDay);
                                 const lunar = Lunar.fromDate(date);
                                 return (
-                                    <span className={"ml-3 text-gray-400"}>{ getDay(date) }<span className={"mx-2"}>·</span>(음) { lunar.getMonth() }월 { lunar.getDay() }일</span>
+                                    <span className={"ml-3 text-gray-400"}>{ getDay(date, current_holi_info.isHoliday) }<span className={"mx-2"}>·</span>(음) { lunar.getMonth() }월 { lunar.getDay() }일</span>
                                 )
                             })()}
                         </div>
@@ -238,21 +263,19 @@ export default function App() {
                                     오늘
                                 </div>
                             )}
-                            {specialDays.map((i, idx) => {
-                                if (i.date === simplifyDateString(showingCalendar.getFullYear(), showingCalendar.getMonth(), currentDay)) {
-                                    return (
-                                        <div key={`specialday-${idx}`} className={
-                                            clsx(
-                                            "inline-block px-2 h-5 text-[0.9rem] rounded-[5px]",
-                                                i.type === "holi" && "bg-red-700 text-red-100 font-bold",
-                                                i.type === "rest" && "bg-red-400 font-bold",
-                                                i.type === "anni" && "bg-purple-400 text-black",
-                                                i.type === "tfst" && "bg-[#F9A825]",
-                                                i.type === "other" && "bg-gray-400 text-black"
-                                            )
-                                        }>{i.name}</div>
-                                    );
-                                }
+                            {current_holi_info.specdays.map((i, idx) => {
+                                return (
+                                    <div key={`specialday-${idx}`} className={
+                                        clsx(
+                                        "inline-block px-2 h-5 text-[0.9rem] rounded-[5px]",
+                                            i.type === "holi" && "bg-red-700 text-red-100 font-bold",
+                                            i.type === "rest" && "bg-red-400 font-bold",
+                                            i.type === "anni" && "bg-purple-400 text-black",
+                                            i.type === "tfst" && "bg-[#F9A825]",
+                                            i.type === "other" && "bg-gray-400 text-black"
+                                        )
+                                    }>{i.name}</div>
+                                );
                             })}
                         </div>
                     </div>
@@ -309,7 +332,16 @@ export default function App() {
                         <FaArrowRight/>
                     </div>
                 </div>
-                <div className={"flex flex-col mt-10 font-suite"}>
+                <div className={"flex flex-col mt-5 font-suite"}>
+                    <div className={clsx(
+                        "mb-1 flex items-center",
+                        "text-[1.1rem]",
+                        "transition-all duration-200",
+                        loadingError ? "opacity-100 -mt-2" : "opacity-0 -mt-7"
+                    )}>
+                        <span className={"ml-4 text-[1.2rem] mb-0.5 text-red-400 font-bold"}><CiWarning/></span>
+                        <span className={"ml-2 text-red-400"}>기념일 데이터 불러오기 실패</span>
+                    </div>
                     <div className={"flex w-full border-b border-gray-400 pb-2 font-bold text-[1.2rem]"}>
                         <span className={"flex-1 text-center text-red-400"}>일</span>
                         <span className={"flex-1 text-center"}>월</span>
