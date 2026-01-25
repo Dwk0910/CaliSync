@@ -13,6 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class CaliBack {
     public static Logger LOGGER = LogManager.getLogger(CaliBack.class);
     public static Path database = Paths.get(System.getProperty("user.home"), "Documents", "Personal", "CaliSync", "test", "calendar.db");
+    public static Path datapath = Paths.get(System.getProperty("user.dir"), "data");
 
     public static DBC dbc;
 

@@ -7,8 +7,8 @@ import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
 
-import org.neatore.caliback.object.SpecialDay;
 import org.neatore.caliback.CaliBack;
+import org.neatore.caliback.object.SpecialDay;
 import org.neatore.caliback.object.Date;
 
 import java.io.FileOutputStream;
@@ -37,7 +37,7 @@ public class SpecialDayService {
             boolean needUpdate = false;
 
             // 업데이트 필요성 확인
-            Path path = Path.of(System.getProperty("user.dir"), "data");
+            Path path = CaliBack.datapath;
             if (!path.toFile().exists()) if (!path.toFile().mkdirs()) throw new IOException();
 
             Path f = Path.of(path.toString(), "special_days.json");
