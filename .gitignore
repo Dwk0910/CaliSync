@@ -244,3 +244,4 @@ build/**
 test/calendar.db
 frontend/package-lock.json
 data
+frontend/.env
