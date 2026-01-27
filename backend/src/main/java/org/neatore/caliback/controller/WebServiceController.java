@@ -17,86 +17,77 @@ import org.neatore.caliback.object.SpecialDay;
 import org.neatore.caliback.services.SpecialDayService;
 
 import java.io.IOException;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
+
 
 @RestController
 @CrossOrigin(origins = { "http://localhost:5173" })
 @RequestMapping("/webservice")
 public class WebServiceController {
     private final SpecialDayService specialDayService;
+    private Map<SpecialDay, SpecialDay> replaceTargets = null;
+    private Map<String, SpecialDay> additions = null;
+
     public WebServiceController(SpecialDayService specialDayService) {
         this.specialDayService = specialDayService;
+
+        // parsing custom data
+        try {
+            final JSONObject customFileData = new JSONObject(Files.readString(Path.of(CaliBack.datapath.toString(), "custom_settings.json")));
+
+            if (customFileData.has("replace")) {
+                JSONArray repArray = customFileData.getJSONArray("replace");
+                Map<SpecialDay, SpecialDay> map = new HashMap<>();
+                for (Object o : repArray) {
+                    JSONObject obj = (JSONObject) o;
+                    SpecialDay from = new SpecialDay(obj.getJSONObject("from"));
+                    SpecialDay to = new SpecialDay(obj.getJSONObject("to"));
+
+                    map.put(from, to);
+                }
+                this.replaceTargets = map;
+            }
+
+            if (customFileData.has("additionally")) {
+                JSONArray addArray = customFileData.getJSONArray("additionally");
+                Map<String, SpecialDay> map = new HashMap<>();
+                for (Object o : addArray) {
+                    JSONObject obj = (JSONObject) o;
+                    SpecialDay sd = new SpecialDay(obj);
+                    map.put(sd.date(), sd);
+                }
+                this.additions = map;
+            }
+        } catch (IOException | JSONException e) {
+            CaliBack.LOGGER.warn("Failed to load custom settings for Special Days. Your custom settings will not be loaded.", e);
+        }
     }
 
     @GetMapping("/specialdays/{year}/{month}")
     public ResponseEntity<String> getSpecialDays(@PathVariable String year, @PathVariable String month) {
-        final AtomicReference<Map<String, Object>> customData = new AtomicReference<>(null);
-        final AtomicReference<JSONArray> additionally = new AtomicReference<>(new JSONArray());
+        Date date = new Date(year, month, "00");
+        List<SpecialDay> serviceResult = specialDayService.getSpecialDays(date, additions);
 
-        // parsing custom data
-        try {
-            JSONObject customData_ = new JSONObject(Files.readString(Path.of(CaliBack.datapath.toString(), "custom_settings.json")));
-            customData.set(customData_.toMap());
-            additionally.set(customData_.getJSONArray("additionally"));
-        } catch (IOException | JSONException ignored) {}
+        if (replaceTargets != null) serviceResult = serviceResult.stream().map(sd -> replaceTargets.getOrDefault(sd, sd)).toList();
 
-        // serviceResult <- customData + additionally
-        Set<SpecialDay> serviceResult = specialDayService.getSpecialDays(new Date(year, month, "0"));
-        JSONArray result = new JSONArray(Stream.concat(
-                serviceResult
-                        .stream()
-                        .map(d -> {
-                            JSONObject i = new JSONObject();
-                            // MMdd
-                            String custom_data_search_query = d.date().substring(4, 8);
+        JSONArray result = new JSONArray(serviceResult
+                .stream()
+                .map(d -> {
+                    JSONObject obj = new JSONObject();
+                    obj.put("name", d.name());
+                    obj.put("date", d.date());
+                    obj.put("type", d.type());
+                    return obj;
+                })
+                .toList()
+        );
 
-                            if (customData.get() != null && customData.get().containsKey(custom_data_search_query)) i.put("name", customData.get().get(custom_data_search_query).toString());
-                            else i.put("name", d.name());
-
-                            i.put("date", d.date());
-                            i.put("type", d.type());
-
-                            return i;
-                        }),
-                additionally.get().toList()
-                        .stream()
-                        .map(d -> {
-                            // ** RETURN NULL IF THERE IS NO DATA TO RETURN **
-
-                            // 선행 과정에서 에러가 발생한 것.
-                            if (serviceResult.isEmpty()) return null;
-
-                            JSONObject i = new JSONObject();
-
-                            // Object d parsing
-                            if (d instanceof Map<?, ?> raw) {
-                                raw.forEach((k, v) -> i.put(k.toString(), v));
-                            }
-
-                            JSONObject j = null;
-
-                            // MMdd -> MM
-                            String custom_data_search_query = i.getString("date").substring(0, 2);
-
-                            if (custom_data_search_query.equals(month.length() == 1 ? "0" + month : month)) {
-                                j = new JSONObject();
-                                j.put("name", i.getString("name"));
-                                j.put("date", year + i.getString("date"));
-                                j.put("type", i.getString("type"));
-                            }
-
-                            return j;
-                        })
-                        .filter(Objects::nonNull)
-        ).toList());
-
-        return ResponseEntity.ok(result.toString(4));
+        return ResponseEntity.ok(new JSONArray(result).toString(4));
     }
 }

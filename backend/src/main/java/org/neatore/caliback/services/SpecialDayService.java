@@ -23,10 +23,20 @@ import java.nio.file.Path;
 
 import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URISyntaxException;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SpecialDayService {
@@ -58,6 +68,7 @@ public class SpecialDayService {
                 // 또는, 타깃 정보가 올해 정보인데 반해 마지막 업데이트 날짜가 작년 이상으로 과거일 경우
                 if (target_year.equals(now.year) && Integer.parseInt(now.year) > Integer.parseInt(Date.parseDate(data_.get("updated_at").toString()).year))
                     needUpdate = true;
+
             } catch (JSONException e) {
                 // JSON파일에 이상이 있는 경우
                 needUpdate = true;
@@ -113,28 +124,50 @@ public class SpecialDayService {
             String host = "http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/";
             String serviceKey = System.getenv("DATAGOKR_SERVICE_KEY");
 
+            List<CompletableFuture<JSONArray>> queueList = new ArrayList<>();
             for (int month = 1; month <= 12; month++) {
                 String str_month = Integer.toString(month).length() == 1 ? "0" + month : Integer.toString(month);
                 URL url = new URI(host + serviceName + "?solYear=%s&solMonth=%s&ServiceKey=%s".formatted(target_year, str_month, serviceKey)).toURL();
 
-                JSONObject obj;
-                try {
-                    obj = XML.toJSONObject(new InputStreamReader(url.openConnection().getInputStream())).getJSONObject("response").getJSONObject("body").getJSONObject("items");
-                } catch (JSONException e) {
-                    continue;
-                }
+                CompletableFuture<JSONArray> future = CompletableFuture.supplyAsync(() -> {
+                    JSONArray result = new JSONArray();
+                    try {
+                        URLConnection conn = url.openConnection();
+                        conn.setConnectTimeout(3000);
+                        conn.setReadTimeout(5000);
 
-                try {
-                    JSONArray item = obj.getJSONArray("item");
-                    for (Object o : item) {
-                        JSONObject _o = (JSONObject) o;
-                        days.put(_o);
+                        JSONObject apiResult = XML.toJSONObject(new InputStreamReader(conn.getInputStream())).getJSONObject("response").getJSONObject("body");
+                        JSONObject jsonObj = apiResult.optJSONObject("items", new JSONObject());
+                        Object object = jsonObj.opt("item");
+
+                        if (object instanceof JSONArray array) {
+                            for (int i = 0; i < array.length(); i++) {
+                                JSONObject o = array.getJSONObject(i);
+                                // YYYYMMDD -> MMDD
+                                o.put("locdate", o.getLong("locdate") % 10000);
+                                result.put(o);
+                            }
+                        } else if (object instanceof JSONObject obj) {
+                            // YYYYMMDD -> MMDD
+                            obj.put("locdate", obj.getLong("locdate") % 10000);
+                            result.put(obj);
+                        }
+                    } catch (IOException | JSONException e) {
+                        CaliBack.LOGGER.error("SpecialDayService getItemFromURL error : ", e);
                     }
-                } catch (JSONException e) {
-                    JSONObject item = obj.getJSONObject("item");
-                    days.put(item);
-                }
+                    return result;
+                });
+                queueList.add(future);
             }
+
+            queueList.forEach(future -> {
+                try {
+                    JSONArray futureResult = future.get(10, TimeUnit.SECONDS);
+                    days.put(futureResult);
+                } catch (Exception e) {
+                    CaliBack.LOGGER.error("SpecialDayService getItemFromURL error : ", e);
+                }
+            });
 
             return days;
         } catch (IOException | JSONException | URISyntaxException e) {
@@ -148,26 +181,40 @@ public class SpecialDayService {
      * @param date - Requires only year and month
      * @return returns list of special days in that month
      */
-    public Set<SpecialDay> getSpecialDays(Date date) {
-        if ((2004 > Integer.parseInt(date.year)) || (Integer.parseInt(date.year) > Integer.parseInt(Date.Now.toDate().year) + 1)) return new LinkedHashSet<>();
+    public List<SpecialDay> getSpecialDays(Date date, Map<String, SpecialDay> additionals_) {
+        if ((2004 > Integer.parseInt(date.year)) || (Integer.parseInt(date.year) > Integer.parseInt(Date.Now.toDate().year) + 1)) return new ArrayList<>();
 
         update(date.year);
 
-        Set<SpecialDay> specialDays = new LinkedHashSet<>();
+        Set<SpecialDay> specialDaysSet = new LinkedHashSet<>();
         JSONObject data_ = data.getJSONObject(date.year);
 
-        // 'yyyyMM'
-        String start = date.getDate(1).substring(0, 6);
+        // 'yyyyMM00' -> 'MM'
+        String start = date.month;
 
         // 국경일(holi) > 공휴일(rest) > 기념일(anni) > 24절기(tfst) > 잡절(other)
-        String[] seq = {"holi", "rest", "anni", "tfst", "other"};
+        List<String> seq = List.of("holi", "rest", "anni", "tfst", "other");
+
+        // 커스텀 기념일들을 type을 기반으로, 이번 달(date.month)에 해당하는 SpecialDay만 분류
+        final Map<String, List<SpecialDay>> additionals = additionals_.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith(start))
+                .map(Map.Entry::getValue)
+                .collect(Collectors.groupingBy(SpecialDay::type));
 
         for (String s : seq) {
+            // From API
             data_.getJSONArray(s + "_days").forEach(o -> {
                 JSONObject obj = (JSONObject) o;
-                if (obj.get("locdate").toString().startsWith(start)) specialDays.add(new SpecialDay(obj.getString("dateName"), obj.get("locdate").toString(), s));
+                if (obj.get("locdate").toString().startsWith(start)) specialDaysSet.add(new SpecialDay(obj.getString("dateName"), obj.get("locdate").toString(), s));
             });
+
+            // From custom settings
+            specialDaysSet.addAll(additionals.getOrDefault(s, Collections.emptyList()));
         }
+
+        // 정렬
+        List<SpecialDay> specialDays = new ArrayList<>(specialDaysSet);
+        specialDays.sort(Comparator.comparingInt(d -> seq.indexOf(d.type())));
 
         return specialDays;
     }

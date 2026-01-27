@@ -1,8 +1,14 @@
 package org.neatore.caliback.object;
 
+import org.json.JSONObject;
+
 import java.util.Objects;
 
 public record SpecialDay(String name, String date, String type) {
+    public SpecialDay(JSONObject obj) {
+        this(obj.getString("name"), obj.getString("date"), obj.getString("type"));
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == this) return true;
