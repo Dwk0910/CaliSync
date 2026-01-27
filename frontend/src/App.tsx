@@ -7,8 +7,8 @@ import { clsx } from 'clsx';
 
 import { FaPlus, FaArrowLeft, FaArrowRight } from "react-icons/fa6";
 import { IoTerminalOutline, IoClose } from "react-icons/io5";
+import { GrUpdate } from "react-icons/gr";
 import { CiWarning } from 'react-icons/ci'
-
 import { MdMyLocation } from "react-icons/md";
 
 // popups
@@ -21,7 +21,59 @@ export default function App() {
     const [currentDay, setCurrentDay] = useState<number>(0);
     const [scheduleOpen, setScheduleOpen] = useState<boolean>(false);
 
+    const [loadingError, setLoadingError] = useState<boolean>(false);
+    const [loadingSchedules, setLoadingSchedules] = useState<boolean>(true);
+    const [specialDays, setSpecialDays] = useState<Map<string, Array<SpecialDay>>>(new Map<string, Array<SpecialDay>>());
+
     const [now] = useState<Date>(() => new Date());
+
+    // 1. 서버 데이터 가져오기 및 Map 생성 최적화
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchSchedules = async () => {
+            setSpecialDays(new Map());
+            setLoadingSchedules(true);
+            setLoadingError(false);
+
+            try {
+                const response = await $.ajax({
+                    url: backend + `/webservice/specialdays/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
+                    method: "GET",
+                });
+
+                if (!isMounted) return;
+
+                const data_: Array<SpecialDay> = typeof response === 'string' ? JSON.parse(response) : response;
+                const specialDays_: Map<string, Array<SpecialDay>> = new Map();
+
+                if (data_ && data_.length > 0) {
+                    data_.forEach(item => {
+                        const dayKey = parseInt(item.date.slice(-2)).toString();
+                        if (!specialDays_.has(dayKey)) specialDays_.set(dayKey, []);
+                        specialDays_.get(dayKey)!.push(item);
+                    });
+                } else {
+                    // noinspection ExceptionCaughtLocallyJS
+                    throw new Error("No data received");
+                }
+
+
+                setSpecialDays(specialDays_);
+                setLoadingSchedules(false); // 로딩 종료!
+            } catch (e) {
+                console.error(e);
+
+                if (!isMounted) return;
+                setLoadingError(true);
+                setLoadingSchedules(false);
+            }
+        };
+
+        void fetchSchedules();
+
+        return () => { isMounted = false; }; // 언마운트 시 클린업
+    }, [backend, showingCalendar]);
 
     // getDay (요일 구하기)
     const getDay: (date: Date, isHoliday: boolean) => React.ReactNode = (date, isHoliday) => {
@@ -38,39 +90,36 @@ export default function App() {
         return (<span className={"font-suite " + style(date.getDay())}>{days[date.getDay()]}</span>);
     }
 
-    const simplifyDateString: (year: number, month: number, day: number) => string = (year, month, day) => {
-        return `${year}${(month + 1).toString().length == 1 ? ("0" + (month + 1).toString()) : (month + 1).toString()}${day.toString().length == 1 ? ("0" + day.toString()) : day.toString()}`
-    }
-
     // popup 설정
     const [popup, setPopup] = useState<{open: boolean, content: React.ReactNode}>({
         open: false,
         content: <></>
     });
 
-    const year = showingCalendar.getFullYear();
-    const month = showingCalendar.getMonth();
-    const day = showingCalendar.getDate();
+    const monthInfo = useMemo(() => ({
+        currentYear: showingCalendar.getFullYear(),
+        currentMonth: showingCalendar.getMonth() + 1,
+        currentDay: showingCalendar.getDate(),
+        startDay: new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), 1).getDay(),
+        dayCount: new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() + 1, 0).getDate()
+    }), [showingCalendar]);
 
-    const firstDay = new Date(year, month, 1).getDay();
-    const totalDays = new Date(year, month + 1, 0).getDate();
+    const currentDayInf = useMemo(() => {
+        if (currentDay === 0) return { isHoliday: false, specdays: [] };
 
-    const dateInfo = {
-        currentYear: year,
-        currentMonth: month + 1,
-        currentDay: day,
-        startDay: firstDay,
-        dayCount: totalDays
-    };
+        const specials = specialDays.get(currentDay.toString()) || [];
+        const isHoliday = specials.some(s => s.type === "holi" || s.type === "rest");
+
+        return {
+            isHoliday: isHoliday,
+            specdays: specials
+        };
+    }, [currentDay, specialDays]);
 
     // close function for Popup classes
     const close = () => {
         setPopup((prev) => ({...prev, open: false}));
     }
-
-    const [loadingError, setLoadingError] = useState<boolean>(false);
-    const [loadingSchedules, setLoadingSchedules] = useState<boolean>(true);
-    const [specialDays, setSpecialDays] = useState<Array<SpecialDay>>([]);
 
     // 백엔드 서버 통신 시도 및 국가 이벤트, 사용자 이벤트 호출하기
 
@@ -80,118 +129,86 @@ export default function App() {
         type: string;
         date: string;
     }
-    
-    useEffect(() => {
-        setLoadingSchedules(true);
-        // noinspection JSUnusedGlobalSymbols
-        $.ajax({
-            url: backend + `/webservice/specialdays/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
-            type: "application/json",
-            method: "GET",
-            error: () => {
-                setLoadingError(true);
-            }
-        }).then((e: string) => {
-            const data: Array<SpecialDay> = JSON.parse(e);
-            if (data.length == 0) setLoadingError(true);
-            else setLoadingError(false);
-            setSpecialDays(data);
-        })
-    }, [backend, showingCalendar]);
 
-    // 달력 만들기
+    // 2. 달력 컨텐츠 생성
     const calendarContent: React.ReactNode[][] = useMemo(() => {
         const calendarContent_: React.ReactNode[][] = [];
-
         const now = new Date();
 
-        // 토요일 일요일
-        let sat = (7 - dateInfo.startDay);
-        let sun = (8 - dateInfo.startDay);
-        const satList = [], sunList = [];
-
-        if (sun == 8) sunList.push(1);
-
-        for (; sat <= dateInfo.dayCount; sat += 7) { satList.push(sat); }
-        for (; sun <= dateInfo.dayCount; sun += 7) { sunList.push(sun); }
-
-        // 1. 이번 달 날짜 채우기 (빈 칸 포함)
-        // cd가 startDay보다 작을 때는 빈 칸을 넣고, 그 이후부터 rd를 증가시킴
         let cd = 0, rd = 1, w = 0;
-        while (rd <= dateInfo.dayCount) {
+        while (rd <= monthInfo.dayCount) {
             if (!calendarContent_[w]) calendarContent_[w] = [];
 
-            if (cd < dateInfo.startDay) {
-                calendarContent_[w].push(
-                    <div key={`empty-${cd}`} className="flex-1 border-b border-neutral-700 h-20 p-1 pt-2"></div>
-                );
+            if (cd < monthInfo.startDay) {
+                calendarContent_[w].push(<div key={`empty-${cd}`} className="flex-1 border-b border-neutral-700 h-20 p-1 pt-2"></div>);
             } else {
-                // 클로저 문제 방지를 위해 현재 rd 값을 상수로 고정
                 const day = rd;
-                calendarContent_[w].push(
-                    <div key={`day-${day}`} className={clsx(
-                        "flex-1 text-center border-b border-neutral-700 h-20 p-1 pt-2",
-                        now.toDateString() === new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), day).toDateString() && "bg-blue-300/20",
-                        satList.includes(day) && "text-blue-500",
-                        (sunList.includes(day) || specialDays.find((i) => (i.date === simplifyDateString(showingCalendar.getFullYear(), showingCalendar.getMonth(), day) && ((i.type == "holi" && i.name != "제헌절") || i.type == "rest")))) && "text-red-500",
-                    )} onClick={() => {
-                        setCurrentDay(day);
-                        setScheduleOpen(true);
-                    }}>{day}</div>
-                );
-                rd++;
-            }
+                const isToday = now.getFullYear() === showingCalendar.getFullYear() &&
+                    now.getMonth() === showingCalendar.getMonth() &&
+                    now.getDate() === day;
 
-            cd++; // 무한 루프 방지를 위해 cd는 항상 증가
-            if (calendarContent_[w].length === 7) w++;
-        }
+                // 날짜 색상 결정 로직
+                const daySpecials = specialDays.get(day.toString()) || [];
+                const hasHoliday = daySpecials.some(s => s.type === "holi" || s.type === "rest");
+                const isSat = (cd % 7 === 6);
+                const isSun = (cd % 7 === 0);
 
-        // 2. 마지막 주 빈 칸을 다음 달 날짜로 채우기
-        if (calendarContent_[w] && calendarContent_[w].length > 0) {
-            let nextMonthDay = 1;
-            while (calendarContent_[w].length < 7) {
-                const day = nextMonthDay;
                 calendarContent_[w].push(
-                    <div key={`fill-${day}`} className="flex-1 border-b border-neutral-700 h-20 p-1 pt-2 text-center text-neutral-700"
+                    <div key={`day-${day}`}
+                         className={clsx(
+                             "flex-1 text-center border-b border-neutral-700 h-20 p-1 pt-2 cursor-pointer",
+                             isToday && "bg-blue-300/20",
+                             isSat && "text-blue-500",
+                             (isSun || hasHoliday) && "text-red-500"
+                         )}
                          onClick={() => {
-                             setShowingCalendar((prev) => {
-                                 const nextDate = new Date(prev);
-                                 nextDate.setMonth(prev.getMonth() + 1);
-                                 return nextDate;
-                             });
-                             setCurrentDay(day);
-                             setScheduleOpen(true);
+                             if (!loadingSchedules) {
+                                 setCurrentDay(day);
+                                 setScheduleOpen(true);
+                             }
                          }}>
                         {day}
                     </div>
                 );
-                nextMonthDay++;
+                rd++;
+            }
+            cd++;
+            if (calendarContent_[w].length === 7) w++;
+        }
+
+        // 마지막 주 일수가 부족할 경우 추가 (Clickable)
+        // if (calendarContent_[w] && calendarContent_[w].length > 0) {
+        //     rd = 1;
+        //     while (calendarContent_[w].length < 7) {
+        //         calendarContent_[w].push(
+        //             <div key={`fill-${showingCalendar}-${rd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 pt-2 text-center text-neutral-700"} onClick={() => {
+        //                 setShowingCalendar((prev) => {
+        //                     const nextDate = new Date(prev);
+        //                     nextDate.setMonth(prev.getMonth() + 1);
+        //                     return nextDate;
+        //                 });
+        //                 setCurrentDay(rd);
+        //             }}>{rd}</div>
+        //         );
+        //         rd++;
+        //     }
+        // }
+
+        // (Non-Clickable)
+        if (calendarContent_[w] && calendarContent_[w].length > 0) {
+            rd = 1;
+            while (calendarContent_[w].length < 7) {
+                calendarContent_[w].push(
+                    <div key={`fill-${showingCalendar}-${rd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 pt-2 text-center text-neutral-700"}/>
+                );
+                rd++;
             }
         }
 
-        // 3. set loading state to false
-        setLoadingSchedules(false);
-
-        // 4. return
         return calendarContent_;
-    }, [dateInfo.startDay, dateInfo.dayCount, showingCalendar, specialDays]);
+    }, [loadingSchedules, monthInfo, showingCalendar, specialDays]); // specialDays를 의존성에 넣어야 로딩 후 빨간색이 칠해짐!
 
-    // currentDay에 해당하는 Special Day 및 공휴일 여부 구해두기
-    const current_holi_info: { isHoliday: boolean, specdays: Array<SpecialDay> } = useMemo(() => {
-        let haveHoliday: boolean = false;
-        const specialDays_: Array<SpecialDay> = [];
-        for (const item of specialDays) {
-            if (item.date == simplifyDateString(showingCalendar.getFullYear(), showingCalendar.getMonth(), currentDay)) {
-                specialDays_.push(item);
-                if (item.type === "holi" || item.date === "rest") haveHoliday = true;
-            }
-        }
 
-        return {
-            isHoliday: haveHoliday,
-            specdays: specialDays_,
-        };
-    }, [currentDay, showingCalendar, specialDays]);
 
     const [daypopup_button_active, set_daypopup_button_active] = useState<boolean>(true);
 
@@ -257,7 +274,7 @@ export default function App() {
                                 const date = new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), currentDay);
                                 const lunar = Lunar.fromDate(date);
                                 return (
-                                    <span className={"ml-3 text-gray-400"}>{ getDay(date, current_holi_info.isHoliday) }<span className={"mx-2"}>·</span>(음) { lunar.getMonth() }월 { lunar.getDay() }일</span>
+                                    <span className={"ml-3 text-gray-400"}>{ getDay(date, currentDayInf.isHoliday) }<span className={"mx-2"}>·</span>(음) { lunar.getMonth() }월 { lunar.getDay() }일</span>
                                 )
                             })()}
                         </div>
@@ -267,7 +284,7 @@ export default function App() {
                                     오늘
                                 </div>
                             )}
-                            {current_holi_info.specdays.map((i, idx) => {
+                            {currentDayInf.specdays.map((i, idx) => {
                                 return (
                                     <div key={`specialday-${idx}`} className={
                                         clsx(
@@ -320,15 +337,18 @@ export default function App() {
                     })}/>
                     <FaPlus className={"ml-5"}/>
                 </div>
-                <div className={"flex m-5 justify-center"}>
+                <div className={clsx("inline-block p-2 text-green-300/30 animate-spin transition-opacity duration-300 ease-in-out", loadingSchedules ? "opacity-100" : "opacity-0")}>
+                    <GrUpdate/>
+                </div>
+                <div className={"flex justify-center"}>
                     <div className={"flex mt-auto mr-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
                         setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() - 1, showingCalendar.getDate()));
                     }}>
                         <FaArrowLeft/>
                     </div>
                     <div className={"flex flex-col justify-end font-suite items-center h-15 mt-5"}>
-                        <span className={"text-gray-300 w-20 text-center"}>{ dateInfo.currentYear }년</span>
-                        <span className={"-mt-1 text-[2rem] font-bold w-20 text-center"}>{ dateInfo.currentMonth }월</span>
+                        <span className={"text-gray-300 w-20 text-center"}>{ monthInfo.currentYear }년</span>
+                        <span className={"-mt-1 text-[2rem] font-bold w-20 text-center"}>{ monthInfo.currentMonth }월</span>
                     </div>
                     <div className={"flex mt-auto ml-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
                         setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() + 1, showingCalendar.getDate()));
