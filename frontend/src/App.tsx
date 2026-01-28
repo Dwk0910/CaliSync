@@ -342,7 +342,7 @@ export default function App() {
                 </div>
                 <div className={"flex justify-center"}>
                     <div className={"flex mt-auto mr-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
-                        setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() - 1, showingCalendar.getDate()));
+                        setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() - 1, 1));
                     }}>
                         <FaArrowLeft/>
                     </div>
@@ -351,7 +351,7 @@ export default function App() {
                         <span className={"-mt-1 text-[2rem] font-bold w-20 text-center"}>{ monthInfo.currentMonth }월</span>
                     </div>
                     <div className={"flex mt-auto ml-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
-                        setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() + 1, showingCalendar.getDate()));
+                        setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() + 1, 1));
                     }}>
                         <FaArrowRight/>
                     </div>
