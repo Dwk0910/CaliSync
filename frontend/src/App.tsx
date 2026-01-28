@@ -15,6 +15,20 @@ import { MdMyLocation } from "react-icons/md";
 import MoveTo from "./popup/MoveTo";
 
 export default function App() {
+    // Type definition
+    // Schedules & Events
+    type SpecialDay = {
+        name: string;
+        type: string;
+        date: string;
+    }
+
+    type Schedule = {
+        date: string;
+        content: string;
+        isCompleted: boolean;
+    }
+
     const backend = import.meta.env.VITE_API_BACKEND_ADDRESS;
 
     const [showingCalendar, setShowingCalendar] = useState<Date>(new Date());
@@ -23,7 +37,9 @@ export default function App() {
 
     const [loadingError, setLoadingError] = useState<boolean>(false);
     const [loadingSchedules, setLoadingSchedules] = useState<boolean>(true);
+
     const [specialDays, setSpecialDays] = useState<Map<string, Array<SpecialDay>>>(new Map<string, Array<SpecialDay>>());
+    const [schedules, setSchedules] = useState<Map<string, Array<Schedule>>>(new Map<string, Array<Schedule>>());
 
     const [now] = useState<Date>(() => new Date());
 
@@ -38,28 +54,38 @@ export default function App() {
 
             try {
                 const response = await $.ajax({
-                    url: backend + `/webservice/specialdays/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
+                    url: backend + `/webservice/getMonthInfo/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
                     method: "GET",
                 });
 
                 if (!isMounted) return;
 
-                const data_: Array<SpecialDay> = typeof response === 'string' ? JSON.parse(response) : response;
-                const specialDays_: Map<string, Array<SpecialDay>> = new Map();
+                // key: specialDays, schedules
+                const responseData = typeof response === 'string' ? JSON.parse(response) : response;
 
-                if (data_ && data_.length > 0) {
-                    data_.forEach(item => {
+                // function to parse data
+                const groupByDay = <T extends { date: string }>(data: Array<T>) => {
+                    const map = new Map<string, Array<T>>();
+                    data?.forEach(item => {
                         const dayKey = parseInt(item.date.slice(-2)).toString();
-                        if (!specialDays_.has(dayKey)) specialDays_.set(dayKey, []);
-                        specialDays_.get(dayKey)!.push(item);
+                        if (!map.has(dayKey)) map.set(dayKey, []);
+                        map.get(dayKey)!.push(item);
                     });
-                } else {
+                    return map;
+                }
+
+                const { specialDays: specialDaysData, schedules: schedulesData } = responseData;
+                // Speical Days
+
+                if (!specialDaysData || specialDaysData.length === 0) {
                     // noinspection ExceptionCaughtLocallyJS
                     throw new Error("No data received");
                 }
+                setSpecialDays(groupByDay(specialDaysData));
 
+                // Schedules
+                setSchedules(groupByDay((schedulesData.length == 0) ? [] : schedulesData));
 
-                setSpecialDays(specialDays_);
                 setLoadingSchedules(false); // 로딩 종료!
             } catch (e) {
                 console.error(e);
@@ -123,13 +149,6 @@ export default function App() {
 
     // 백엔드 서버 통신 시도 및 국가 이벤트, 사용자 이벤트 호출하기
 
-    // Schedules & Events
-    type SpecialDay = {
-        name: string;
-        type: string;
-        date: string;
-    }
-
     // 2. 달력 컨텐츠 생성
     const calendarContent: React.ReactNode[][] = useMemo(() => {
         const calendarContent_: React.ReactNode[][] = [];
@@ -153,13 +172,15 @@ export default function App() {
                 const isSat = (cd % 7 === 6);
                 const isSun = (cd % 7 === 0);
 
+                // Schedule icon
+                const scheduleLength = schedules.get(day.toString())?.length || 0;
+
                 calendarContent_[w].push(
                     <div key={`day-${day}`}
                          className={clsx(
                              "flex-1 text-center border-b border-neutral-700 h-20 p-1 pt-2 cursor-pointer",
                              isToday && "bg-blue-300/20",
-                             isSat && "text-blue-500",
-                             (isSun || hasHoliday) && "text-red-500"
+                             "flex flex-col"
                          )}
                          onClick={() => {
                              if (!loadingSchedules) {
@@ -167,7 +188,26 @@ export default function App() {
                                  setScheduleOpen(true);
                              }
                          }}>
-                        {day}
+                        <span className={clsx(
+                            isSat && "text-blue-500",
+                            (isSun || hasHoliday) && "text-red-500"
+                        )}>{day}</span>
+                        <div className={"w-full flex flex-wrap justify-center px-1"}>
+                            {
+                                (() => {
+                                    const result: React.ReactNode[] = [];
+                                    for (let i = 0; i < scheduleLength; i++) {
+                                        result.push (
+                                            <div key={`scheduleItem-${i}`} className={"mt-1 mr-auto w-2.5 h-3 "}>
+                                                <div className={"w-2 h-2 rounded-[100%] bg-gray-400/50"}/>
+                                            </div>
+                                        )
+                                    }
+
+                                    return result;
+                                })()
+                            }
+                        </div>
                     </div>
                 );
                 rd++;

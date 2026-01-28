@@ -69,14 +69,17 @@ public class WebServiceController {
         }
     }
 
-    @GetMapping("/specialdays/{year}/{month}")
+    @GetMapping("/getMonthInfo/{year}/{month}")
     public ResponseEntity<String> getSpecialDays(@PathVariable String year, @PathVariable String month) {
+        JSONObject result = new JSONObject();
+
+        // Special Days
         Date date = new Date(year, month, "00");
         List<SpecialDay> serviceResult = specialDayService.getSpecialDays(date, additions);
 
         if (replaceTargets != null) serviceResult = serviceResult.stream().map(sd -> replaceTargets.getOrDefault(sd, sd)).toList();
 
-        JSONArray result = new JSONArray(serviceResult
+        JSONArray spd_result = new JSONArray(serviceResult
                 .stream()
                 .map(d -> {
                     JSONObject obj = new JSONObject();
@@ -88,6 +91,12 @@ public class WebServiceController {
                 .toList()
         );
 
-        return ResponseEntity.ok(new JSONArray(result).toString(4));
+        result.put("specialDays", spd_result);
+
+        // TODO: Schedules
+
+        result.put("schedules", new JSONArray());
+
+        return ResponseEntity.ok(result.toString(4));
     }
 }
