@@ -96,10 +96,11 @@ export default function App() {
                 const days_: Map<string, Day> = new Map<string, Day>();
 
                 schedulesData.forEach((item: Day) => {
-                    days_.set(item.date.slice(-2), item);
+                    const daystr = item.date.slice(-2);
+                    days_.set(daystr.startsWith("0") ? daystr.slice(-1) : daystr, item);
                 })
 
-                setDays(days_)
+                setDays(days_);
 
                 setLoadingSchedules(false); // 로딩 종료!
             } catch (e) {
