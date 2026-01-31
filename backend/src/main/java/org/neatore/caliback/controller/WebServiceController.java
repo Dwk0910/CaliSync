@@ -4,6 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import org.neatore.caliback.services.DBCService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,11 +32,14 @@ import java.util.Map;
 @RequestMapping("/webservice")
 public class WebServiceController {
     private final SpecialDayService specialDayService;
+    private final DBCService dbcService;
+
     private Map<SpecialDay, SpecialDay> replaceTargets = null;
     private Map<String, SpecialDay> additions = null;
 
-    public WebServiceController(SpecialDayService specialDayService) {
+    public WebServiceController(SpecialDayService specialDayService, DBCService dbcService) {
         this.specialDayService = specialDayService;
+        this.dbcService = dbcService;
 
         // parsing custom data
         try {
@@ -93,9 +97,13 @@ public class WebServiceController {
 
         result.put("specialDays", spd_result);
 
-        // TODO: Schedules
+        JSONObject data = new JSONObject();
+        data.put("date", date.getDate(1));
 
-        result.put("schedules", new JSONArray());
+        String resultstr = dbcService.process(new JSONObject().put("method", "GET_MONTH").put("data", data)).responseBody().toString();
+        JSONArray array = new JSONArray(resultstr);
+
+        result.put("schedules", array);
 
         return ResponseEntity.ok(result.toString(4));
     }

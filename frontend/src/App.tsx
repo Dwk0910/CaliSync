@@ -29,6 +29,13 @@ export default function App() {
         isCompleted: boolean;
     }
 
+    type Day = {
+        date: string;
+        bgColor: string;
+        mdate: string;
+        schedules: Array<Schedule>;
+    }
+
     const backend = import.meta.env.VITE_API_BACKEND_ADDRESS;
 
     const [showingCalendar, setShowingCalendar] = useState<Date>(new Date());
@@ -39,7 +46,7 @@ export default function App() {
     const [loadingSchedules, setLoadingSchedules] = useState<boolean>(true);
 
     const [specialDays, setSpecialDays] = useState<Map<string, Array<SpecialDay>>>(new Map<string, Array<SpecialDay>>());
-    const [schedules, setSchedules] = useState<Map<string, Array<Schedule>>>(new Map<string, Array<Schedule>>());
+    const [days, setDays] = useState<Map<string, Day>>(new Map<string, Day>());
 
     const [now] = useState<Date>(() => new Date());
 
@@ -49,6 +56,7 @@ export default function App() {
 
         const fetchSchedules = async () => {
             setSpecialDays(new Map());
+            setDays(new Map());
             setLoadingSchedules(true);
             setLoadingError(false);
 
@@ -83,8 +91,15 @@ export default function App() {
                 }
                 setSpecialDays(groupByDay(specialDaysData));
 
-                // Schedules
-                setSchedules(groupByDay((schedulesData.length == 0) ? [] : schedulesData));
+                // Days (Schedules)
+
+                const days_: Map<string, Day> = new Map<string, Day>();
+
+                schedulesData.forEach((item: Day) => {
+                    days_.set(item.date.slice(-2), item);
+                })
+
+                setDays(days_)
 
                 setLoadingSchedules(false); // 로딩 종료!
             } catch (e) {
@@ -159,6 +174,7 @@ export default function App() {
             if (!calendarContent_[w]) calendarContent_[w] = [];
 
             if (cd < monthInfo.startDay) {
+                // 시작이 일요일이 아닌 경우
                 calendarContent_[w].push(<div key={`empty-${cd}`} className="flex-1 border-b border-neutral-700 h-20 p-1 pt-2"></div>);
             } else {
                 const day = rd;
@@ -172,8 +188,12 @@ export default function App() {
                 const isSat = (cd % 7 === 6);
                 const isSun = (cd % 7 === 0);
 
+                // Schedule data
+                // const schedule_data: Map<string, Array<Schedule>> = schedules.get(day.toString());
+                // const schedules_: Array<Schedule> = schedule_data.get("schedules") || [];
+
                 // Schedule icon
-                const scheduleLength = schedules.get(day.toString())?.length || 0;
+                const scheduleLength = loadingSchedules ? 0 : days.get(day.toString())?.schedules?.length || 0;
 
                 calendarContent_[w].push(
                     <div key={`day-${day}`}
@@ -192,13 +212,13 @@ export default function App() {
                             isSat && "text-blue-500",
                             (isSun || hasHoliday) && "text-red-500"
                         )}>{day}</span>
-                        <div className={"w-full flex flex-wrap justify-center px-1"}>
+                        <div className={"w-full flex flex-wrap justify-start pl-1.5 pr-0.5"}>
                             {
                                 (() => {
                                     const result: React.ReactNode[] = [];
                                     for (let i = 0; i < scheduleLength; i++) {
                                         result.push (
-                                            <div key={`scheduleItem-${i}`} className={"mt-1 mr-auto w-2.5 h-3 "}>
+                                            <div key={`scheduleItem-${i}`} className={"mt-1 w-3 h-3"}>
                                                 <div className={"w-2 h-2 rounded-[100%] bg-gray-400/50"}/>
                                             </div>
                                         )
@@ -246,7 +266,7 @@ export default function App() {
         }
 
         return calendarContent_;
-    }, [loadingSchedules, monthInfo, showingCalendar, specialDays]); // specialDays를 의존성에 넣어야 로딩 후 빨간색이 칠해짐!
+    }, [loadingSchedules, monthInfo, showingCalendar, specialDays, days]); // specialDays를 의존성에 넣어야 로딩 후 빨간색이 칠해짐!
 
 
 
