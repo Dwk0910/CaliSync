@@ -11,6 +11,8 @@ public class Date {
     private String hour, minute, second;
 
     public Date(String year, String month, String day) {
+        if (year.length() != 4) throw new IllegalArgumentException("Year must be 4 digits.");
+
         this.year = year;
         this.month = month.length() == 1 ? "0" + month : month;
         this.day = day.length() == 1 ? "0" + day : day;
