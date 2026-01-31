@@ -72,6 +72,39 @@ public record DBC (String dburl, String u_mid) {
         return result;
     }
 
+    public JSONArray getMonthSchedules(Date date) {
+        List<Day> result;
+        try (Connection conn = DriverManager.getConnection(dburl);
+             PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM item_table WHERE it_unique_id LIKE ?;")
+        ) {
+            pstmt.setString(1, "dkcal_mdays_" + date.year + date.month + "%");
+            ResultSet rs = pstmt.executeQuery();
+            result = Analyze.getDays(rs);
+        } catch (SQLException | IllegalArgumentException e) {
+            CaliBack.LOGGER.error(e);
+            throw new RuntimeException(e);
+        }
+
+        return new JSONArray(result.stream()
+                .map(d -> {
+                    JSONObject obj = new JSONObject();
+                    obj.put("date", d.date().getDate(1));
+                    obj.put("bgColor", d.bgColor());
+                    obj.put("mdate", d.mdate().getDate(1));
+                    JSONArray schedArray = new JSONArray();
+                    for (Schedule sched : d.scheduleList()) {
+                        JSONObject schedObj = new JSONObject();
+                        schedObj.put("content", sched.content);
+                        schedObj.put("date", sched.date.getDate(1));
+                        schedArray.put(schedObj);
+                    }
+                    obj.put("schedules", schedArray);
+                    return obj;
+                })
+                .toList()
+        );
+    }
+
     public JSONObject getUpdateInfo() {
         JSONObject obj = new JSONObject();
         try (Connection conn = DriverManager.getConnection(dburl);

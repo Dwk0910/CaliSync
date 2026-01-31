@@ -44,6 +44,10 @@ public class DBCService {
                     return new PacketResponse(200, dbc.getSchedulesAsJson(date));
                 }
 
+                case "GET_MONTH" -> {
+                    return new PacketResponse(200, dbc.getMonthSchedules(date));
+                }
+
                 case "UPDATE_INFO" -> {
                     return new PacketResponse(200, dbc.getUpdateInfo());
                 }
