@@ -1,4 +1,5 @@
 import { useState, useEffect, type SetStateAction, type Dispatch } from 'react';
+import { IoClose } from 'react-icons/io5';
 import { clsx } from 'clsx';
 
 export default function MoveTo({ date, setDate, close }: { date: Date, setDate: Dispatch<SetStateAction<Date>>, close: () => void }) {
@@ -24,6 +25,9 @@ export default function MoveTo({ date, setDate, close }: { date: Date, setDate: 
 
     return (
         <div className={"w-full h-full text-white flex flex-col"}>
+            <div className={"absolute w-15 h-15 right-0 text-[2.5rem] text-white"}>
+                <IoClose onClick={() => close()}/>
+            </div>
             <span className={"text-3xl font-suite font-bold"}>이동</span>
             <div className={"flex flex-col w-full h-full justify-between"}>
                 <div>
