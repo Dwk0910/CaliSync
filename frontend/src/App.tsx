@@ -102,7 +102,7 @@ export default function App() {
                 mdate: "",
                 schedules: []
             }} holidayInf={ holidayInf } getDay={ getDay } close={ close }/>,
-            height: "500px"
+            height: "650px"
         }, MoveTo: {
             component: <MoveTo date={ showingCalendar } setDate={ setShowingCalendar } close={ close }/>,
             height: "350px",

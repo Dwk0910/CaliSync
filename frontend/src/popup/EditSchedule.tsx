@@ -28,7 +28,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
         <div className={"w-full h-full flex flex-col font-suite text-white justify-between"}>
             <div className={"flex flex-col"}>
                 <span className={"mx-auto mb-3 text-white text-[1rem]"}>일정 수정</span>
-                <span className={"text-[1.5rem] text-gray-300"}>{ showingCalendar.getFullYear() }년</span>
+                <span className={"text-[1.5rem] -mt-2 -mb-1 text-gray-300"}>{ showingCalendar.getFullYear() }년</span>
                 <div>
                     <span className={"text-[2rem]"}>
                         <span>{ showingCalendar.getMonth() + 1 }월</span>
@@ -42,7 +42,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                         )
                     })()}
                 </div>
-                <div className={"flex gap-2 flex-wrap mt-1"}>
+                <div className={"flex gap-2 flex-wrap mt-1 min-h-5 max-h-12 overflow-y-scroll"}>
                     {now.getFullYear() == showingCalendar.getFullYear() && now.getMonth() == showingCalendar.getMonth() && now.getDate() == currentDay && (
                         <div className={"inline-block px-2 h-5 text-[0.9rem] rounded-[5px] bg-blue-900 text-white font-bold"}>
                             오늘
@@ -53,6 +53,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                             <div key={`specialday-${idx}`} className={
                                 clsx(
                                     "inline-block px-2 h-5 text-[0.9rem] rounded-[5px]",
+                                    "truncate",
                                     i.type === "holi" && "bg-red-700 text-red-100 font-bold",
                                     i.type === "rest" && "bg-red-500 font-bold",
                                     i.type === "anni" && "bg-purple-400 text-black",
@@ -63,18 +64,32 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                         );
                     })}
                 </div>
+                <div className={"mt-2 flex flex-col gap-1 overflow-y-scroll h-80"}>
+                    {day.schedules.length === 0 && (
+                        <span className={"pb-2 text-gray-400 text-center mt-20"}>
+                            이 날은 스케줄 및 이벤트가 없습니다.
+                        </span>
+                    )}
+                    {day.schedules.map((i, idx) => {
+                        return (
+                            <>
+                                <span key={idx}>{i.content}</span>
+                            </>
+                        );
+                    })}
+                </div>
             </div>
-            <div className={"flex"}>
+            <div className={"py-5 flex mb-5"}>
                 <div className={clsx(
                     "flex justify-center items-center w-[50%] h-12 rounded-lg",
-                    "transition-all duration-200 ease-in-out mb-10 border border-gray-600",
+                    "transition-all duration-200 ease-in-out border border-gray-600",
                     "bg-neutral-500"
                 )} onClick={() => close()}>
                     <span className={"font-suite text-xl"}>취소</span>
                 </div>
                 <div className={clsx(
                     "flex justify-center items-center ml-5 w-[50%] h-12 rounded-lg",
-                    "transition-all duration-200 ease-in-out mb-10",
+                    "transition-all duration-200 ease-in-out",
                     daypopup_button_active ? "bg-green-600/90" : "bg-neutral-600")
                 } onClick={() => {
                     if (daypopup_button_active) return;
