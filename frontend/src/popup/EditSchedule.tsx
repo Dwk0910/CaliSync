@@ -1,11 +1,18 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+import no_color from '../assets/editscheudle_popup_asset/no_color.png';
 
 import { type SpecialDay, type Day } from "../App";
 import { type Popup } from './Popup';
 
 import { Lunar } from 'lunar-javascript';
 import { clsx } from "clsx";
+
+import { IoAddOutline } from 'react-icons/io5';
+import { RxDragHandleDots2 } from "react-icons/rx";
+import { RiDeleteBin6Line } from "react-icons/ri";
+import { VscHistory } from "react-icons/vsc";
 
 type Props = Popup<{
     showingCalendar: Date,
@@ -20,6 +27,21 @@ type Props = Popup<{
 
 export default function EditSchedule({ showingCalendar, now, day, holidayInf, getDay, close }: Props) {
     const [ daypopup_button_active ] = useState<boolean>(false);
+
+    // 변하는 기념일 뱃지 컨테이너 height에 따라 scheduleConainter max height도 바뀌어야 아래 버튼에 영향이 안감
+    const [ scheduleContainerMaxH, setScheduleContainerMaxH ] = useState<string>("max-h-95");
+    const listRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        (async () => {
+            const el = listRef.current;
+            if (!el) return;
+
+            // 기념일 뱃지 컨테이너가 2줄 이상으로 길어졌을 경우
+            if (el.clientHeight > 20) setScheduleContainerMaxH("max-h-75")
+            else if (el.clientHeight != 0) setScheduleContainerMaxH("max-h-83")
+        })()
+    }, [holidayInf])
 
     const currentDay = parseInt(day.date.slice(-2));
 
@@ -42,7 +64,11 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                         )
                     })()}
                 </div>
-                <div className={"flex gap-2 flex-wrap mt-1 min-h-5 max-h-12 overflow-y-scroll"}>
+                <div
+                    ref={listRef}
+                    className={clsx(
+                    holidayInf.specdays.length !== 0 && "flex gap-2 flex-wrap mt-1 min-h-5 max-h-12 overflow-y-scroll"
+                )}>
                     {now.getFullYear() == showingCalendar.getFullYear() && now.getMonth() == showingCalendar.getMonth() && now.getDate() == currentDay && (
                         <div className={"inline-block px-2 h-5 text-[0.9rem] rounded-[5px] bg-blue-900 text-white font-bold"}>
                             오늘
@@ -64,22 +90,47 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                         );
                     })}
                 </div>
-                <div className={"mt-2 flex flex-col gap-1 overflow-y-scroll h-80"}>
-                    {day.schedules.length === 0 && (
+                <div className={"w-full border-b border-neutral-600 my-2"}/>
+                <div className={"w-full flex justify-between"}>
+                    <div className={"flex gap-2"}>
+                        <div className={"inline-flex items-center justify-center p-2 rounded-[5px] bg-neutral-500 text-[1.2rem]"}><IoAddOutline /></div>
+                        <div className={"inline-flex items-center justify-center p-2 rounded-[5px] bg-neutral-500"}><VscHistory /></div>
+                        <div className={"inline-flex items-center justify-center p-2 rounded-[5px] bg-neutral-500"}><RiDeleteBin6Line /></div>
+                    </div>
+                    <div className={"flex items-center justify-center"}>
+                        <div className={"border border-gray-400 rounded-[5px] overflow-hidden"}>
+                            <img src={no_color} alt="n" className={"w-7 h-7 -p-1"}/>
+                        </div>
+                    </div>
+                </div>
+                <div className={clsx(
+                    "mt-4 flex flex-col gap-3 overflow-y-scroll",
+                    scheduleContainerMaxH
+                )} style={{ scrollbarWidth: "none" }}>
+                    {day.schedules.length === 0 ? (
                         <span className={"pb-2 text-gray-400 text-center mt-20"}>
-                            이 날은 스케줄 및 이벤트가 없습니다.
+                            이 날은 일정 및 이벤트가 없습니다.
                         </span>
-                    )}
-                    {day.schedules.map((i, idx) => {
+                    ) : day.schedules.map((i, idx) => {
                         return (
-                            <>
-                                <span key={idx}>{i.content}</span>
-                            </>
+                            // Container
+                            <div key={`daycontent-${idx}`} className={"w-full shrink-0"}>
+                                {/*// Content*/}
+                                <div className={clsx(
+                                    "bg-neutral-800 p-2 pl-4 overflow-x-hidden text-wrap line-clamp-2 flex items-center rounded-[5px] border border-gray-600",
+                                    "flex"
+                                )}>
+                                    <div className={"w-[5%] flex justify-center"}>
+                                        <span className={"text-[1.7rem] text-gray-400"}><RxDragHandleDots2 size={23}/></span>
+                                    </div>
+                                    <span className={"w-[95%] pl-4 pr-2 text-wrap wrap-break-word"}>{i.content}</span>
+                                </div>
+                            </div>
                         );
                     })}
                 </div>
             </div>
-            <div className={"py-5 flex mb-5"}>
+            <div className={"flex my-5"}>
                 <div className={clsx(
                     "flex justify-center items-center w-[50%] h-12 rounded-lg",
                     "transition-all duration-200 ease-in-out border border-gray-600",
