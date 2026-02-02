@@ -60,7 +60,7 @@ export default function App() {
         dayCount: new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() + 1, 0).getDate()
     }), [showingCalendar]);
 
-    const currentDayInf = useMemo(() => {
+    const holidayInf = useMemo(() => {
         if (currentDay === 0) return { isHoliday: false, specdays: [] };
 
         const specials = specialDays.get(currentDay.toString()) || [];
@@ -96,7 +96,12 @@ export default function App() {
     // ** DEFINE POPUPS HERE **
     const popups: {[key: string]: { component: React.ReactNode, height: string }} = {
         EditSchedule: {
-            component: <EditScheulde now={ now } showingCalendar={ showingCalendar } currentDay={ currentDay } currentDayInf={ currentDayInf } getDay={ getDay } close={ close }/>,
+            component: <EditScheulde now={ now } showingCalendar={ showingCalendar } day={ days.get(currentDay.toString()) || {
+                date: currentDay.toString(),
+                bgColor: "",
+                mdate: "",
+                schedules: []
+            }} holidayInf={ holidayInf } getDay={ getDay } close={ close }/>,
             height: "500px"
         }, MoveTo: {
             component: <MoveTo date={ showingCalendar } setDate={ setShowingCalendar } close={ close }/>,
@@ -299,8 +304,9 @@ export default function App() {
 
             {/* Popup */}
             {(() => {
+                // Default popup height : 500px
+                const height = popups[popup.content]?.height ?? "500px";
                 const popupConfig = popups[popup.content];
-                const height = popups[popup.content]?.height ?? "0px";
                 return (
                     <div className={clsx(
                         "fixed w-screen h-screen",

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 
-import { type SpecialDay } from "../App";
+import { type SpecialDay, type Day } from "../App";
 import { type Popup } from './Popup';
 
 import { Lunar } from 'lunar-javascript';
@@ -10,16 +10,18 @@ import { clsx } from "clsx";
 type Props = Popup<{
     showingCalendar: Date,
     now: Date,
-    currentDay: number;
-    currentDayInf: {
+    day: Day,
+    holidayInf: {
         isHoliday: boolean;
         specdays: SpecialDay[];
     };
     getDay: (date: Date, isHoliday: boolean) => React.ReactNode;
 }>;
 
-export default function EditSchedule({ showingCalendar, now, currentDay, currentDayInf, getDay, close }: Props) {
+export default function EditSchedule({ showingCalendar, now, day, holidayInf, getDay, close }: Props) {
     const [ daypopup_button_active ] = useState<boolean>(false);
+
+    const currentDay = parseInt(day.date.slice(-2));
 
     // Schedule Setting Popup (Day popup)
     return (
@@ -36,17 +38,17 @@ export default function EditSchedule({ showingCalendar, now, currentDay, current
                         const date = new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), currentDay);
                         const lunar = Lunar.fromDate(date);
                         return (
-                            <span className={"ml-3 text-gray-400"}>{ getDay(date, currentDayInf.isHoliday) }<span className={"mx-2"}>·</span>(음) { lunar.getMonth() }월 { lunar.getDay() }일</span>
+                            <span className={"ml-3 text-gray-400"}>{ getDay(date, holidayInf.isHoliday) }<span className={"mx-2"}>·</span>(음) { lunar.getMonth() }월 { lunar.getDay() }일</span>
                         )
                     })()}
                 </div>
                 <div className={"flex gap-2 flex-wrap mt-1"}>
                     {now.getFullYear() == showingCalendar.getFullYear() && now.getMonth() == showingCalendar.getMonth() && now.getDate() == currentDay && (
-                        <div className={"inline-block px-2 h-5 text[0.9rem] rounded-[5px] bg-blue-900 text-white font-bold"}>
+                        <div className={"inline-block px-2 h-5 text-[0.9rem] rounded-[5px] bg-blue-900 text-white font-bold"}>
                             오늘
                         </div>
                     )}
-                    {currentDayInf.specdays.map((i, idx) => {
+                    {holidayInf.specdays.map((i, idx) => {
                         return (
                             <div key={`specialday-${idx}`} className={
                                 clsx(
