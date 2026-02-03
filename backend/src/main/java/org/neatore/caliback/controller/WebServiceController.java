@@ -4,7 +4,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import org.neatore.caliback.services.DBCService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,10 +15,12 @@ import org.neatore.caliback.CaliBack;
 import org.neatore.caliback.object.Date;
 import org.neatore.caliback.object.SpecialDay;
 import org.neatore.caliback.services.SpecialDayService;
+import org.neatore.caliback.services.DBCService;
 
 import java.io.IOException;
 
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 
 import java.util.HashMap;
@@ -69,7 +70,8 @@ public class WebServiceController {
                 this.additions = map;
             }
         } catch (IOException | JSONException e) {
-            CaliBack.LOGGER.warn("Failed to load custom settings for Special Days. Your custom settings will not be loaded.", e);
+            if (e instanceof NoSuchFileException) CaliBack.LOGGER.info("Custom setting file does not exist.");
+            else CaliBack.LOGGER.warn("Failed to load custom settings for Special Days. Your custom settings will not be loaded.", e);
         }
     }
 
