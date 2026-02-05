@@ -21,7 +21,7 @@ public class DBCService {
     public PacketResponse process(JSONObject obj) {
         try {
             JSONObject data = obj.getJSONObject("data");
-            Date date = data.isNull("date") ? new Date("", "", "") : Date.parseDate(data.get("date").toString());
+            Date date = data.isNull("date") ? new Date("0000", "", "") : Date.parseDate(data.get("date").toString());
 
             switch (obj.getString("method")) {
                 case "POST" -> {
