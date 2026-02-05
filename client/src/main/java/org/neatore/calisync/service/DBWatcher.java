@@ -130,6 +130,9 @@ public class DBWatcher implements Runnable {
         String lastModified = data.getString("last_modified");
         List<Day> targets = new ArrayList<>();
 
+        // DB에 뭔짓거리 했음
+        boolean did_something_to_db = false;
+
         long insertCount = 0L;
         // 서버에서의 마지막 수정 날짜 이후의 일정들만 조회 및 등록
         try (Connection conn = DriverManager.getConnection(dburl);
@@ -159,19 +162,23 @@ public class DBWatcher implements Runnable {
             LOGGER.error(e);
         }
 
+        // 만약 false이면 변경사항이 없는 것 (캘린더 재시작 과정에서 저널 파일을 감지한 것임)
+        if (!targets.isEmpty()) {
+            // 서버로 변경된 일정들 전송
+            JSONObject obj = new JSONObject();
+            JSONArray array = new JSONArray();
+            for (Day day : targets) {
+                array.put(day.toJSONObject());
+            }
+            obj.put("targets", array);
+            client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.UPDATE, obj.toMap())).thenAccept(res -> {
+                if (res.getInt("code") != 200) LOGGER.error("Failed to update database on server: {}", res.toString(4));
+            });
+        }
+
+
         // 서버의 totalCount는 기존 값에 이번에 추가된 일정 수를 더한 값으로 설정 (추가가 아닌 수정은 제외시켜야 함)
         long totalCount = Long.parseLong(data.getString("total_count")) + insertCount;
-
-        // 서버로 변경된 일정들 전송
-        JSONObject obj = new JSONObject();
-        JSONArray array = new JSONArray();
-        for (Day day : targets) {
-            array.put(day.toJSONObject());
-        }
-        obj.put("targets", array);
-        client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.UPDATE, obj.toMap())).thenAccept(res -> {
-            if (res.getInt("code") != 200) LOGGER.error("Failed to update database on server: {}", res.toString(4));
-        });
 
         // total_count가 다르면 전체 동기화 필요
 
@@ -187,6 +194,7 @@ public class DBWatcher implements Runnable {
                     client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.HARD_UPDATE, null))
                             .thenApply(res -> res.getString("body"))
                             .thenAcceptAsync(this::hardUpdate);
+                    did_something_to_db = true;
                     return;
                 }
             }
@@ -194,8 +202,8 @@ public class DBWatcher implements Runnable {
             LOGGER.error(e);
         }
 
-        // 변경사항 적용
-        CalendarProcess.refresh();
+        // DB 변경사항 있으면 적용
+        if (did_something_to_db) CalendarProcess.refresh();
     }
 
     private void hardUpdate(String key, boolean... isManual) {
