@@ -12,9 +12,10 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.31.2",
     "lunar-javascript": "^1.7.7",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "react-icons": "^5.5.0"
   },
   "devDependencies": {
