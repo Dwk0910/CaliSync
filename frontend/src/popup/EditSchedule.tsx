@@ -104,7 +104,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                     </div>
                 </div>
                 <div className={clsx(
-                    "mt-4 flex flex-col gap-3 overflow-y-scroll",
+                    "mt-4 flex flex-col gap-2 overflow-y-scroll",
                     scheduleContainerMaxH
                 )} style={{ scrollbarWidth: "none" }}>
                     {day.schedules.length === 0 ? (
