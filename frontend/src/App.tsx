@@ -24,6 +24,7 @@ export type SpecialDay = {
 }
 
 export type Schedule = {
+    id: string;
     date: string;
     content: string;
     isCompleted: boolean;
@@ -101,7 +102,7 @@ export default function App() {
                 bgColor: "",
                 mdate: "",
                 schedules: []
-            }} holidayInf={ holidayInf } getDay={ getDay } close={ close }/>,
+            }} holidayInf={ holidayInf } getDayName={ getDay } close={ close }/>,
             height: "650px"
         }, MoveTo: {
             component: <MoveTo date={ showingCalendar } setDate={ setShowingCalendar } close={ close }/>,

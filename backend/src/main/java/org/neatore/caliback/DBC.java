@@ -92,11 +92,17 @@ public record DBC (String dburl, String u_mid) {
                     obj.put("bgColor", d.bgColor());
                     obj.put("mdate", d.mdate().getDate(1));
                     JSONArray schedArray = new JSONArray();
+                    int i = 0;
                     for (Schedule sched : d.scheduleList()) {
                         JSONObject schedObj = new JSONObject();
                         schedObj.put("content", sched.content);
                         schedObj.put("date", sched.date.getDate(1));
+                        schedObj.put("isCompleted", sched.isCompleted);
+
+                        // 나중에 드래그를 구현할 때 고유 id가 있어야 함
+                        schedObj.put("id", "%s-%d".formatted(date, i));
                         schedArray.put(schedObj);
+                        i++;
                     }
                     obj.put("schedules", schedArray);
                     return obj;
