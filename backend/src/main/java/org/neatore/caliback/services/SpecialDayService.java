@@ -144,12 +144,14 @@ public class SpecialDayService {
                             for (int i = 0; i < array.length(); i++) {
                                 JSONObject o = array.getJSONObject(i);
                                 // YYYYMMDD -> MMDD
-                                o.put("locdate", o.getLong("locdate") % 10000);
+                                String locdate_str = Long.toString((o.getLong("locdate") % 10000));
+                                o.put("locdate", locdate_str.length() == 3 ? "0" + locdate_str : locdate_str);
                                 result.put(o);
                             }
                         } else if (object instanceof JSONObject obj) {
                             // YYYYMMDD -> MMDD
-                            obj.put("locdate", obj.getLong("locdate") % 10000);
+                            String locdate_str = Long.toString((obj.getLong("locdate") % 10000));
+                            obj.put("locdate", locdate_str.length() == 3 ? "0" + locdate_str : locdate_str);
                             result.put(obj);
                         }
                     } catch (IOException | JSONException e) {
@@ -163,7 +165,7 @@ public class SpecialDayService {
             queueList.forEach(future -> {
                 try {
                     JSONArray futureResult = future.get(10, TimeUnit.SECONDS);
-                    days.put(futureResult);
+                    futureResult.forEach(days::put);
                 } catch (Exception e) {
                     CaliBack.LOGGER.error("SpecialDayService getItemFromURL error : ", e);
                 }
