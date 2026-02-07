@@ -82,7 +82,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                     ref={listRef}
                     className={clsx(
                         holidayInf.specdays.length !== 0 &&
-                        "flex flex-wrap mt-1 min-h-5 max-h-12 overflow-y-scroll"
+                        "flex flex-wrap mt-1 min-h-5 max-h-12 overflow-y-scroll gap-2"
                     )}
                 >
                     {now.getFullYear() === showingCalendar.getFullYear() &&
