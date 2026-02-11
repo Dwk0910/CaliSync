@@ -8,13 +8,15 @@ import { type Popup } from './Popup';
 
 import { Reorder, AnimatePresence, useDragControls, motion, useAnimation } from 'framer-motion';
 
-import { Lunar } from 'lunar-javascript';
-import { clsx } from "clsx";
-
 import { IoAddOutline } from 'react-icons/io5';
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { RxDragHandleDots2 } from "react-icons/rx";
 import { VscHistory } from "react-icons/vsc";
+
+import { Lunar } from 'lunar-javascript';
+import { clsx } from "clsx";
+
+import TextareaAutosize from 'react-textarea-autosize';
 
 type Props = Popup<{
     showingCalendar: Date,
@@ -24,15 +26,16 @@ type Props = Popup<{
         isHoliday: boolean;
         specdays: SpecialDay[];
     };
+    refresh: () => Promise<void>;
     getDayName: (date: Date, isHoliday: boolean) => React.ReactNode;
 }>;
 
-export default function EditSchedule({ showingCalendar, now, day, holidayInf, getDayName, close }: Props) {
-    const [ daypopup_button_active ] = useState(false);
+export default function EditSchedule({ showingCalendar, now, day, holidayInf, getDayName, refresh, close }: Props) {
+    const [ daypopup_button_active, set_daypopup_button_active ] = useState<boolean>(false);
+    const [ scheduleContainerMaxH, setScheduleContainerMaxH ] = useState("h-90");
     const [ schedules, setSchedules ] = useState<Schedule[]>(day.schedules);
 
     const listRef = useRef<HTMLDivElement>(null);
-    const [ scheduleContainerMaxH, setScheduleContainerMaxH ] = useState("h-90");
 
     useEffect(() => {
         const el = listRef.current;
@@ -45,6 +48,39 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
     useEffect(() => {
         setSchedules(day.schedules);
     }, [day]);
+
+    const changeSchedules: (t: Schedule[]) => void = (t) => {
+        setSchedules(() => {
+            const prevIds = day.schedules.map(d => d.id);
+            const tIds = t.map(d => d.id);
+
+            const isContentChanged = t.some(s => {
+                const originalContent = day.schedules.find(os => os.id === s.id)?.content;
+                return originalContent !== s.content;
+            });
+
+            const isChanged = isContentChanged || prevIds.length !== tIds.length || prevIds.some((id, idx) => id != tIds[idx]);
+
+            if (isChanged) set_daypopup_button_active(true);
+            else set_daypopup_button_active(false);
+            return t;
+        });
+    }
+
+    const onSave = async () => {
+        if (daypopup_button_active) {
+            // TODO: 백엔드 서버로 변경사항 전송
+            close();
+            set_daypopup_button_active(false);
+            await refresh();
+        }
+    }
+
+    const onClose = () => {
+        close();
+        setSchedules(day.schedules);
+        set_daypopup_button_active(false);
+    }
 
     const currentDay = parseInt(day.date.slice(-2));
 
@@ -88,7 +124,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                     {now.getFullYear() === showingCalendar.getFullYear() &&
                         now.getMonth() === showingCalendar.getMonth() &&
                         now.getDate() === currentDay && (
-                            <div className="px-2 h-5 text-[0.9rem] rounded bg-blue-900 font-bold">
+                            <div className="px-2 h-5 text-[0.9rem] rounded bg-blue-900 font-bold inline-block">
                                 오늘
                             </div>
                         )}
@@ -128,7 +164,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                         layout
                         axis="y"
                         values={schedules}
-                        onReorder={setSchedules}
+                        onReorder={changeSchedules}
                         className={clsx("mt-4 overflow-y-scroll", scheduleContainerMaxH)}
                         style={{ scrollbarWidth: "none" }}
                     >
@@ -140,8 +176,9 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                             ) : schedules.map(item => (
                                     <ScheduleItem
                                         key={item.id}
-                                        item={item}
-                                        setSchedules={setSchedules}
+                                        itemId={item.id}
+                                        schedules={schedules}
+                                        setSchedules={changeSchedules}
                                     />
                                 ))
                             }
@@ -153,18 +190,17 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
             <div className="flex my-5">
                 <div
                     className="w-1/2 h-12 flex items-center justify-center rounded-lg bg-neutral-500 border border-gray-600"
-                    onClick={close}
+                    onPointerDown={onClose}
                 >
                     취소
                 </div>
                 <div
                     className={clsx(
                         "w-1/2 h-12 ml-5 flex items-center justify-center rounded-lg",
-                        daypopup_button_active ? "bg-green-600/90" : "bg-neutral-600"
+                        "transition-colors duration-300",
+                        daypopup_button_active ? "bg-blue-500" : "bg-neutral-600"
                     )}
-                    onClick={() => {
-                        if (!daypopup_button_active) close();
-                    }}
+                    onPointerDown={onSave}
                 >
                     저장
                 </div>
@@ -173,10 +209,12 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
     );
 }
 
-const ScheduleItem = ({ item, setSchedules }: { item: Schedule; setSchedules: React.Dispatch<React.SetStateAction<Schedule[]>>; }) => {
+const ScheduleItem = ({ itemId, schedules, setSchedules }: { itemId: string; schedules: Schedule[]; setSchedules: (t: Schedule[]) => void; }) => {
     const reorderItemDragControl = useDragControls();
     const deleteItemDragControl = useDragControls();
     const deleteItemAnimation = useAnimation();
+
+    const item = schedules.find(item => item.id === itemId) || null;
 
     return (
         <Reorder.Item
@@ -205,10 +243,10 @@ const ScheduleItem = ({ item, setSchedules }: { item: Schedule; setSchedules: Re
                 onDragEnd={async (_, info) => {
                     if (info.offset.x <= -100) {
                         await deleteItemAnimation.start({
-                            x: -400,
+                            x: -300,
                             transition: { duration: 0.2 }
                         });
-                        setSchedules(prev => prev.filter(p => p.id !== item.id));
+                        setSchedules(schedules.filter(p => p.id !== item?.id));
                     } else if (info.offset.x < -15) {
                         await deleteItemAnimation.start({
                             x: -30,
@@ -231,8 +269,21 @@ const ScheduleItem = ({ item, setSchedules }: { item: Schedule; setSchedules: Re
                 }}>
                     <RxDragHandleDots2/>
                 </div>
-                <div className={"w-full py-2 pr-2 touch-none"} onPointerDown={(e) => deleteItemDragControl.start(e)}>
-                    {item.content}
+                <div className={"w-[90%] py-2 pr-4 touch-none wrap-break-word"} onPointerDown={(e) => deleteItemDragControl.start(e)}>
+                    <TextareaAutosize
+                        value={item?.content}
+                        spellCheck={false}
+                        className={"outline-none w-full bg-transparent wrap-break-word border-none resize-none overflow-hidden text-inherit font-inherit py-0 m-0 leading-tight block"}
+                        // 한 개의 스케줄에서 사용자가 줄바꿈을 하면 의도치 않은 동작이 발생할 수 있음
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") e.preventDefault();
+                        }}
+                        onChange={(e) => {
+                            const filteredValue = e.target.value.replace(/r?\n|\r/g, "");
+                            const newSchedules = schedules.map(s => s.id === item?.id ? { ...s, content: filteredValue } : s);
+                            setSchedules(newSchedules);
+                        }
+                    }/>
                 </div>
             </motion.div>
         </Reorder.Item>
