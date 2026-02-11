@@ -1,6 +1,6 @@
 import * as React from "react";
-import $ from 'jquery';
-import { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 
 import { clsx } from 'clsx';
 
@@ -42,7 +42,9 @@ export default function App() {
 
     const backend = import.meta.env.VITE_API_BACKEND_ADDRESS;
 
-    const [showingCalendar, setShowingCalendar] = useState<Date>(new Date());
+    const [now] = useState<Date>(() => new Date());
+
+    const [showingCalendar, setShowingCalendar] = useState<Date>(now);
     const [currentDay, setCurrentDay] = useState<number>(0);
 
     const [loadingError, setLoadingError] = useState<boolean>(false);
@@ -50,8 +52,6 @@ export default function App() {
 
     const [specialDays, setSpecialDays] = useState<Map<string, Array<SpecialDay>>>(new Map<string, Array<SpecialDay>>());
     const [days, setDays] = useState<Map<string, Day>>(new Map<string, Day>());
-
-    const [now] = useState<Date>(() => new Date());
 
     const monthInfo = useMemo(() => ({
         currentYear: showingCalendar.getFullYear(),
@@ -88,100 +88,62 @@ export default function App() {
         return (<span className={"font-suite " + style(date.getDay())}>{days[date.getDay()]}</span>);
     }
 
-    // popup 설정
-    // close function for Popup classes
-    const close = () => {
-        setPopup((prev) => ({...prev, open: false}));
-    }
-
-    // ** DEFINE POPUPS HERE **
-    const popups: {[key: string]: { component: React.ReactNode, height: string }} = {
-        EditSchedule: {
-            component: <EditScheulde now={ now } showingCalendar={ showingCalendar } day={ days.get(currentDay.toString()) || {
-                date: currentDay.toString(),
-                bgColor: "",
-                mdate: "",
-                schedules: []
-            }} holidayInf={ holidayInf } getDayName={ getDay } close={ close }/>,
-            height: "650px"
-        }, MoveTo: {
-            component: <MoveTo date={ showingCalendar } setDate={ setShowingCalendar } close={ close }/>,
-            height: "350px",
-        }
-    };
-
-    // popup state
-    const [popup, setPopup] = useState<{open: boolean, content: string}>({
-        open: false,
-        content: ""
-    });
-
     // 1. 서버 데이터 가져오기 및 Map 생성 최적화
-    useEffect(() => {
-        let isMounted = true;
+    const fetchSchedules = useCallback(async () => {
+        setSpecialDays(new Map());
+        setDays(new Map());
+        setLoadingSchedules(true);
+        setLoadingError(false);
 
-        const fetchSchedules = async () => {
-            setSpecialDays(new Map());
-            setDays(new Map());
-            setLoadingSchedules(true);
-            setLoadingError(false);
+        try {
+            const response = await axios.get(backend + `/webservice/getMonthInfo/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`);
 
-            try {
-                const response = await $.ajax({
-                    url: backend + `/webservice/getMonthInfo/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
-                    method: "GET",
+            // key: specialDays, schedules
+            const responseData = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+
+            // function to parse data
+            const groupByDay = <T extends { date: string }>(data: Array<T>) => {
+                const map = new Map<string, Array<T>>();
+                data?.forEach(item => {
+                    const dayKey = parseInt(item.date.slice(-2)).toString();
+                    if (!map.has(dayKey)) map.set(dayKey, []);
+                    map.get(dayKey)!.push(item);
                 });
-
-                if (!isMounted) return;
-
-                // key: specialDays, schedules
-                const responseData = typeof response === 'string' ? JSON.parse(response) : response;
-
-                // function to parse data
-                const groupByDay = <T extends { date: string }>(data: Array<T>) => {
-                    const map = new Map<string, Array<T>>();
-                    data?.forEach(item => {
-                        const dayKey = parseInt(item.date.slice(-2)).toString();
-                        if (!map.has(dayKey)) map.set(dayKey, []);
-                        map.get(dayKey)!.push(item);
-                    });
-                    return map;
-                }
-
-                const { specialDays: specialDaysData, schedules: schedulesData } = responseData;
-                // Speical Days
-
-                if (!specialDaysData || specialDaysData.length === 0) {
-                    // noinspection ExceptionCaughtLocallyJS
-                    throw new Error("No data received");
-                }
-                setSpecialDays(groupByDay(specialDaysData));
-
-                // Days (Schedules)
-
-                const days_: Map<string, Day> = new Map<string, Day>();
-
-                schedulesData.forEach((item: Day) => {
-                    const daystr = item.date.slice(-2);
-                    days_.set(daystr.startsWith("0") ? daystr.slice(-1) : daystr, item);
-                })
-
-                setDays(days_);
-
-                setLoadingSchedules(false); // 로딩 종료!
-            } catch (e) {
-                console.error(e);
-
-                if (!isMounted) return;
-                setLoadingError(true);
-                setLoadingSchedules(false);
+                return map;
             }
-        };
 
-        void fetchSchedules();
+            const { specialDays: specialDaysData, schedules: schedulesData } = responseData;
+            // Speical Days
 
-        return () => { isMounted = false; }; // 언마운트 시 클린업
+            if (!specialDaysData || specialDaysData.length === 0) {
+                // noinspection ExceptionCaughtLocallyJS
+                throw new Error("No data received");
+            }
+            setSpecialDays(groupByDay(specialDaysData));
+
+            // Days (Schedules)
+
+            const days_: Map<string, Day> = new Map<string, Day>();
+
+            schedulesData.forEach((item: Day) => {
+                const daystr = item.date.slice(-2);
+                days_.set(daystr.startsWith("0") ? daystr.slice(-1) : daystr, item);
+            })
+
+            setDays(days_);
+
+            setLoadingSchedules(false); // 로딩 종료!
+        } catch (e) {
+            console.error(e);
+
+            setLoadingError(true);
+            setLoadingSchedules(false);
+        }
     }, [backend, showingCalendar]);
+
+    useEffect(() => {
+        void fetchSchedules();
+    }, [fetchSchedules]);
 
     // 백엔드 서버 통신 시도 및 국가 이벤트, 사용자 이벤트 호출하기
 
@@ -223,7 +185,7 @@ export default function App() {
                              isToday && "bg-blue-300/20",
                              "flex flex-col"
                          )}
-                         onClick={() => {
+                         onPointerDown={() => {
                              if (!loadingSchedules) {
                                  setCurrentDay(day);
                                  setPopup({ open: true, content: "EditSchedule" })
@@ -262,7 +224,7 @@ export default function App() {
         //     rd = 1;
         //     while (calendarContent_[w].length < 7) {
         //         calendarContent_[w].push(
-        //             <div key={`fill-${showingCalendar}-${rd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 pt-2 text-center text-neutral-700"} onClick={() => {
+        //             <div key={`fill-${showingCalendar}-${rd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 pt-2 text-center text-neutral-700"} onPointerDown={() => {
         //                 setShowingCalendar((prev) => {
         //                     const nextDate = new Date(prev);
         //                     nextDate.setMonth(prev.getMonth() + 1);
@@ -288,6 +250,34 @@ export default function App() {
 
         return calendarContent_;
     }, [loadingSchedules, monthInfo, showingCalendar, specialDays, days]); // specialDays를 의존성에 넣어야 로딩 후 빨간색이 칠해짐!
+
+    // popup 설정
+    // close function for Popup classes
+    const close = () => {
+        setPopup((prev) => ({...prev, open: false}));
+    }
+
+    // ** DEFINE POPUPS HERE **
+    const popups: {[key: string]: { component: React.ReactNode, height: string }} = {
+        EditSchedule: {
+            component: <EditScheulde now={ now } showingCalendar={ showingCalendar } day={ days.get(currentDay.toString()) || {
+                date: currentDay.toString(),
+                bgColor: "",
+                mdate: "",
+                schedules: []
+            }} holidayInf={ holidayInf } getDayName={ getDay } refresh={ fetchSchedules } close={ close }/>,
+            height: "650px"
+        }, MoveTo: {
+            component: <MoveTo date={ showingCalendar } setDate={ setShowingCalendar } close={ close }/>,
+            height: "350px",
+        }
+    };
+
+    // popup state
+    const [popup, setPopup] = useState<{open: boolean, content: string}>({
+        open: false,
+        content: ""
+    });
 
     return (
         <>
@@ -315,7 +305,7 @@ export default function App() {
                         "transition-colors duration-200 ease-in-out",
                         popup.open && "bg-black/70",
                         !popup.open && "pointer-events-none"
-                    )} onClick={() => setPopup((prev) => ({...prev, open: false}))}>
+                    )} onPointerDown={() => setPopup((prev) => ({...prev, open: false}))}>
                         <div style={{
                             height,
                             marginBottom: popup.open ? "0px" : `-${height}`
@@ -323,7 +313,7 @@ export default function App() {
                             "fixed w-screen bg-neutral-700",
                             "transition-all duration-200 ease-in-out",
                             "pt-6 px-6",
-                        )} onClick={(event) => event.stopPropagation()}>
+                        )} onPointerDown={(event) => event.stopPropagation()}>
                             { popupConfig?.component }
                         </div>
                     </div>
@@ -337,14 +327,14 @@ export default function App() {
             {/*    "transition-colors duration-200 ease-in-out",*/}
             {/*    scheduleOpen && "bg-black/70",*/}
             {/*    !scheduleOpen && "pointer-events-none"*/}
-            {/*)} onClick={() => setScheduleOpen(false)}>*/}
+            {/*)} onPointerDown={() => setScheduleOpen(false)}>*/}
             {/*    <div className={clsx(*/}
             {/*        "fixed w-screen h-150 bg-neutral-700",*/}
             {/*        "transition-all duration-300 ease-in-out",*/}
             {/*        "pt-6 px-6 relative",*/}
             {/*        "flex flex-col justify-between",*/}
             {/*        scheduleOpen ? "mb-0" : "-mb-150"*/}
-            {/*    )} onClick={(event) => event.stopPropagation()}>*/}
+            {/*    )} onPointerDown={(event) => event.stopPropagation()}>*/}
             {/*        <div className={"flex flex-col font-suite text-white"}>*/}
             {/*            <span className={"mx-auto mb-3 text-white text-[1rem]"}>일정 수정</span>*/}
             {/*            <span className={"text-[1.5rem] text-gray-300"}>{ showingCalendar.getFullYear() }년</span>*/}
@@ -388,7 +378,7 @@ export default function App() {
             {/*                "flex justify-center items-center w-[50%] h-12 rounded-lg",*/}
             {/*                "transition-all duration-200 ease-in-out mb-10 border border-gray-600",*/}
             {/*                "bg-neutral-500"*/}
-            {/*            )} onClick={() => {*/}
+            {/*            )} onPointerDown={() => {*/}
             {/*                setScheduleOpen(false);*/}
             {/*            }}>*/}
             {/*                <span className={"font-suite text-xl"}>취소</span>*/}
@@ -397,7 +387,7 @@ export default function App() {
             {/*                "flex justify-center items-center ml-5 w-[50%] h-12 rounded-lg",*/}
             {/*                "transition-all duration-200 ease-in-out mb-10",*/}
             {/*                daypopup_button_active ? "bg-green-600/90" : "bg-neutral-600")*/}
-            {/*            } onClick={() => {*/}
+            {/*            } onPointerDown={() => {*/}
             {/*                if (daypopup_button_active) return;*/}
             {/*                setScheduleOpen(false);*/}
             {/*            }}>*/}
@@ -410,12 +400,12 @@ export default function App() {
             {/*Calendar*/}
             <div className={"w-screen h-screen bg-neutral-800 text-white"}>
                 <div className={"flex items-center w-full bg-neutral-700"}>
-                    <div className={"w-40 h-10 flex items-center justify-center cursor-pointer"} onClick={() => window.location.assign(".")}>
+                    <div className={"w-40 h-10 flex items-center justify-center cursor-pointer"} onPointerDown={() => window.location.assign(".")}>
                         <span className={"font-suite"}>Desktop Calendar</span>
                     </div>
-                    <MdMyLocation onClick={() => setShowingCalendar(now)}/>
+                    <MdMyLocation onPointerDown={() => setShowingCalendar(now)}/>
                     <IoTerminalOutline className={"ml-5"}/>
-                    <FaArrowRight className={"ml-5"} onClick={(() => {
+                    <FaArrowRight className={"ml-5"} onPointerDown={(() => {
                         setPopup({ open: true, content: "MoveTo" })
                     })}/>
                     <FaPlus className={"ml-5"}/>
@@ -424,7 +414,7 @@ export default function App() {
                     <GrUpdate/>
                 </div>
                 <div className={"flex justify-center"}>
-                    <div className={"flex mt-auto mr-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
+                    <div className={"flex mt-auto mr-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onPointerDown={() => {
                         setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() - 1, 1));
                     }}>
                         <FaArrowLeft/>
@@ -433,7 +423,7 @@ export default function App() {
                         <span className={"text-gray-300 w-20 text-center"}>{ monthInfo.currentYear }년</span>
                         <span className={"-mt-1 text-[2rem] font-bold w-20 text-center"}>{ monthInfo.currentMonth }월</span>
                     </div>
-                    <div className={"flex mt-auto ml-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onClick={() => {
+                    <div className={"flex mt-auto ml-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"} onPointerDown={() => {
                         setShowingCalendar(new Date(showingCalendar.getFullYear(), showingCalendar.getMonth() + 1, 1));
                     }}>
                         <FaArrowRight/>
