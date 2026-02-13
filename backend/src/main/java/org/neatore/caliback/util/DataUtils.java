@@ -1,9 +1,13 @@
 package org.neatore.caliback.util;
 
+import org.neatore.caliback.CaliBack;
 import org.neatore.caliback.object.Day;
 import org.neatore.caliback.object.Date;
 import org.neatore.caliback.object.Schedule;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -11,10 +15,12 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
-public class Analyze {
+public class DataUtils {
     /**
      * Returns list of Schedules from ResultSet for a single day
      * @param rs - Result Set for single day
@@ -66,5 +72,33 @@ public class Analyze {
             throw new IllegalArgumentException(e);
         }
         return result;
+    }
+
+    /**
+     * Returns data map of target date.<br/>
+     * @see java.util.Map
+     * @param it_unique_id query id
+     * @return data map of target date
+     */
+    public static Map<String, Object> getRecordData(String it_unique_id) {
+        try (Connection conn = DriverManager.getConnection(CaliBack.dbc.dburl());
+             PreparedStatement pstmt = conn.prepareStatement("SELECT * from item_table WHERE it_unique_id = ?")
+        ) {
+            pstmt.setString(1, it_unique_id);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                Map<String, Object> result = new HashMap<>();
+                if (rs.next()) {
+                    result.put("u_mid", rs.getString("u_mid"));
+                    result.put("it_unique_id", rs.getString("it_unique_id"));
+                    result.put("it_content", rs.getString("it_content"));
+                    result.put("it_history", rs.getString("it_history"));
+                    result.put("it_cdate", rs.getString("it_cdate"));
+                    result.put("it_mdate", rs.getString("it_mdate"));
+                }
+                return result;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
