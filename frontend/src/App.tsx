@@ -188,7 +188,7 @@ export default function App() {
                          onPointerDown={() => {
                              if (!loadingSchedules) {
                                  setCurrentDay(day);
-                                 setPopup({ open: true, content: "EditSchedule" })
+                                 setPopup(prev => ({...prev, open: true, content: "EditSchedule" }))
                              }
                          }}>
                         <span className={clsx(
@@ -258,25 +258,34 @@ export default function App() {
     }
 
     // ** DEFINE POPUPS HERE **
-    const popups: {[key: string]: { component: React.ReactNode, height: string }} = {
+    const popups: {[key: string]: { component: React.ReactNode, allowBgClose: boolean, height: string }} = {
         EditSchedule: {
             component: <EditScheulde now={ now } showingCalendar={ showingCalendar } day={ days.get(currentDay.toString()) || {
                 date: currentDay.toString(),
                 bgColor: "",
                 mdate: "",
                 schedules: []
-            }} holidayInf={ holidayInf } getDayName={ getDay } refresh={ fetchSchedules } close={ close }/>,
+            }} holidayInf={ holidayInf } getDayName={ getDay } refresh={ fetchSchedules } close={ close } setAllowBgClose={(allow: boolean) => {
+                setPopup(prev => {
+                    if (prev.content == "EditSchedule") return {...prev, allowBgClose: allow }
+                    else return prev;
+                })
+            }}/>,
+            // 변경점이 있거나 로딩중일땐 배경눌러 팝업닫기를 차단하고, 그 외의 상황에서는 풀기
+            allowBgClose: false,
             height: "650px"
         }, MoveTo: {
             component: <MoveTo date={ showingCalendar } setDate={ setShowingCalendar } close={ close }/>,
+            allowBgClose: true,
             height: "350px",
         }
     };
 
     // popup state
-    const [popup, setPopup] = useState<{open: boolean, content: string}>({
+    const [popup, setPopup] = useState<{open: boolean, content: string, allowBgClose: boolean}>({
         open: false,
-        content: ""
+        content: "",
+        allowBgClose: true
     });
 
     return (
@@ -305,7 +314,9 @@ export default function App() {
                         "transition-colors duration-200 ease-in-out",
                         popup.open && "bg-black/70",
                         !popup.open && "pointer-events-none"
-                    )} onPointerDown={() => setPopup((prev) => ({...prev, open: false}))}>
+                    )} onPointerDown={() => setPopup(prev => {
+                        return (popup.allowBgClose) ? { ...prev, open: false } : prev;
+                    })}>
                         <div style={{
                             height,
                             marginBottom: popup.open ? "0px" : `-${height}`
@@ -406,7 +417,7 @@ export default function App() {
                     <MdMyLocation onPointerDown={() => setShowingCalendar(now)}/>
                     <IoTerminalOutline className={"ml-5"}/>
                     <FaArrowRight className={"ml-5"} onPointerDown={(() => {
-                        setPopup({ open: true, content: "MoveTo" })
+                        setPopup(prev => ({ ...prev, open: true, content: "MoveTo" }))
                     })}/>
                     <FaPlus className={"ml-5"}/>
                 </div>

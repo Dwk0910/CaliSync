@@ -13,6 +13,7 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 import { RxDragHandleDots2 } from "react-icons/rx";
 import { VscHistory } from "react-icons/vsc";
 
+import axios from 'axios';
 import { Lunar } from 'lunar-javascript';
 import { clsx } from "clsx";
 
@@ -28,10 +29,15 @@ type Props = Popup<{
     };
     refresh: () => Promise<void>;
     getDayName: (date: Date, isHoliday: boolean) => React.ReactNode;
+    setAllowBgClose: (allow: boolean) => void;
 }>;
 
-export default function EditSchedule({ showingCalendar, now, day, holidayInf, getDayName, refresh, close }: Props) {
+export default function EditSchedule({ showingCalendar, now, day, holidayInf, getDayName, refresh, close, setAllowBgClose }: Props) {
+    const backend = import.meta.env.VITE_API_BACKEND_ADDRESS;
+
     const [ daypopup_button_active, set_daypopup_button_active ] = useState<boolean>(false);
+    const [ daypopup_button_loading, set_daypopup_buttion_loading ] = useState<boolean>(false);
+
     const [ scheduleContainerMaxH, setScheduleContainerMaxH ] = useState("h-90");
     const [ schedules, setSchedules ] = useState<Schedule[]>(day.schedules);
 
@@ -50,36 +56,63 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
     }, [day]);
 
     const changeSchedules: (t: Schedule[]) => void = (t) => {
-        setSchedules(() => {
-            const prevIds = day.schedules.map(d => d.id);
-            const tIds = t.map(d => d.id);
+        // 로딩 중(서버로 데이터 업로드 중)에는 로컬 데이터가 변경되면 안됨
+        if (!daypopup_button_loading) {
+            setSchedules(() => {
+                const prevIds = day.schedules.map(d => d.id);
+                const tIds = t.map(d => d.id);
 
-            const isContentChanged = t.some(s => {
-                const originalContent = day.schedules.find(os => os.id === s.id)?.content;
-                return originalContent !== s.content;
+                const isContentChanged = t.some(s => {
+                    const originalContent = day.schedules.find(os => os.id === s.id)?.content;
+                    return originalContent !== s.content;
+                });
+
+                const isChanged = isContentChanged || prevIds.length !== tIds.length || prevIds.some((id, idx) => id != tIds[idx]);
+
+                if (isChanged) set_daypopup_button_active(true);
+                else set_daypopup_button_active(false);
+                return t;
             });
-
-            const isChanged = isContentChanged || prevIds.length !== tIds.length || prevIds.some((id, idx) => id != tIds[idx]);
-
-            if (isChanged) set_daypopup_button_active(true);
-            else set_daypopup_button_active(false);
-            return t;
-        });
+        }
     }
 
     const onSave = async () => {
         if (daypopup_button_active) {
-            // TODO: 백엔드 서버로 변경사항 전송
-            close();
+            // 적용버튼 비활성화 및 로딩 인디케이터 활성화
+            setAllowBgClose(false);
             set_daypopup_button_active(false);
-            await refresh();
+            set_daypopup_buttion_loading(true);
+
+            // Test: await new Promise(resolve => setTimeout(resolve, 5000));
+
+            try {
+                await axios.post(backend + "/webservice/setSchedules", {
+                    date: day.date,
+                    schedules,
+                    bgColor: "",
+                });
+
+                close();
+                setAllowBgClose(true);
+                set_daypopup_buttion_loading(false);
+                await refresh();
+            } catch (err) {
+                console.error(err);
+                setAllowBgClose(true);
+                set_daypopup_button_active(true);
+                set_daypopup_buttion_loading(false);
+                return;
+            }
         }
     }
 
     const onClose = () => {
-        close();
-        setSchedules(day.schedules);
-        set_daypopup_button_active(false);
+        // 로딩 중에는 팝업 닫기 불가
+        if (!daypopup_button_loading) {
+            close();
+            setSchedules(day.schedules);
+            set_daypopup_button_active(false);
+        }
     }
 
     const currentDay = parseInt(day.date.slice(-2));
@@ -202,7 +235,12 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                     )}
                     onPointerDown={onSave}
                 >
-                    저장
+                    {
+                        daypopup_button_loading ? (
+                            <div className={"w-5 h-5 border-2 border-white/20 border-t-white/40 rounded-full animate-spin"}>
+                            </div>
+                        ) : "저장"
+                    }
                 </div>
             </div>
         </div>
