@@ -18,6 +18,22 @@ public class Date {
         this.day = day.length() == 1 ? "0" + day : day;
     }
 
+    /**
+     * Auto parseDate constructor
+     * @see org.neatore.caliback.object.Date#parseDate(String s)
+     * @param date parse target
+     */
+    public Date(String date) {
+        // Try to parse it
+        Date dateObj = Date.parseDate(date);
+        this.year = dateObj.year;
+        this.month = dateObj.month;
+        this.day = dateObj.day;
+        this.hour = dateObj.hour;
+        this.minute = dateObj.minute;
+        this.second = dateObj.second;
+    }
+
     // ** DEFUALT ZONE ID **
     private static final ZoneId timeZone = ZoneId.of("Asia/Seoul");
 
@@ -25,7 +41,9 @@ public class Date {
         public static Date toDate() {
             Instant instant = Instant.now();
             ZonedDateTime zdt = instant.atZone(timeZone);
-            return new Date(Integer.toString(zdt.getYear()), Integer.toString(zdt.getMonthValue()), Integer.toString(zdt.getDayOfMonth()));
+            Date nowDate = new Date(Integer.toString(zdt.getYear()), Integer.toString(zdt.getMonthValue()), Integer.toString(zdt.getDayOfMonth()));
+            nowDate.setTime(Integer.toString(zdt.getHour()), Integer.toString(zdt.getMinute()), Integer.toString(zdt.getSecond()));
+            return nowDate;
         }
 
         public static String getUnixTime() {
