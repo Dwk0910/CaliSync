@@ -8,14 +8,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.neatore.caliback.CaliBack;
-import org.neatore.caliback.object.Date;
-import org.neatore.caliback.object.SpecialDay;
 import org.neatore.caliback.services.SpecialDayService;
 import org.neatore.caliback.services.DBCService;
+import org.neatore.caliback.object.Date;
+import org.neatore.caliback.object.SpecialDay;
 
 import java.io.IOException;
 
@@ -108,5 +110,25 @@ public class WebServiceController {
         result.put("schedules", array);
 
         return ResponseEntity.ok(result.toString(4));
+    }
+
+    @PostMapping("/setSchedules")
+    public ResponseEntity<String> setSchedules(@RequestBody Map<String, Object> req) {
+        Date date = Date.parseDate(req.get("date").toString());
+
+        StringBuilder content = new StringBuilder();
+        List<?> schedules_ = (List<?>) req.get("schedules");
+        schedules_.forEach(i -> {
+            Map<?, ?> schedule = (Map<?, ?>) i;
+            if (!content.isEmpty()) content.append("\n");
+            content.append(schedule.get("content").toString());
+        });
+
+        JSONObject data = new JSONObject();
+        data.put("date", date.getDate(1));
+        data.put("content", content.toString());
+
+        dbcService.process(new JSONObject().put("method", "POST_SET").put("data", data));
+        return ResponseEntity.ok().build();
     }
 }

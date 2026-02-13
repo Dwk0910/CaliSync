@@ -32,6 +32,14 @@ public class DBCService {
                     } catch (NullPointerException e) { return e400; }
                 }
 
+                case "POST_SET" -> {
+                    try {
+                        String content = data.get("content").toString();
+                        dbc.setSchedule(date, content);
+                        return new PacketResponse(201, null);
+                    } catch (NullPointerException e) { return e400; }
+                }
+
                 case "DELETE" -> {
                     try {
                         int seq = Integer.parseInt(data.get("seq").toString());
