@@ -5,8 +5,8 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import org.neatore.caliback.CaliBack;
-import org.neatore.caliback.object.Date;
+import org.neatore.calisync.CaliSync;
+import org.neatore.calisync.object.Date;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -29,7 +29,7 @@ public final class HistoryUtils {
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) return HistoryUtils.decode(rs.getString("it_history"));
         } catch (SQLException e) {
-            CaliBack.LOGGER.error(e);
+            CaliSync.LOGGER.error(e);
         }
         return null;
     }
