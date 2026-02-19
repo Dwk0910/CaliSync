@@ -261,7 +261,7 @@ export default function App() {
     const popups: {[key: string]: { component: React.ReactNode, allowBgClose: boolean, height: string }} = {
         EditSchedule: {
             component: <EditScheulde now={ now } showingCalendar={ showingCalendar } day={ days.get(currentDay.toString()) || {
-                date: currentDay.toString(),
+                date: `${showingCalendar.getFullYear()}${(monthInfo.currentMonth.toString().length == 1) ? "0" + monthInfo.currentMonth : monthInfo.currentMonth}${(currentDay.toString().length == 1) ? "0" + currentDay : currentDay.toString()}`,
                 bgColor: "",
                 mdate: "",
                 schedules: []

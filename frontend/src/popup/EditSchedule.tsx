@@ -14,6 +14,7 @@ import { RxDragHandleDots2 } from "react-icons/rx";
 import { VscHistory } from "react-icons/vsc";
 
 import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 import { Lunar } from 'lunar-javascript';
 import { clsx } from "clsx";
 
@@ -35,8 +36,8 @@ type Props = Popup<{
 export default function EditSchedule({ showingCalendar, now, day, holidayInf, getDayName, refresh, close, setAllowBgClose }: Props) {
     const backend = import.meta.env.VITE_API_BACKEND_ADDRESS;
 
+    const [ daypopup_loading, set_daypopup_loading ] = useState<boolean>(false);
     const [ daypopup_button_active, set_daypopup_button_active ] = useState<boolean>(false);
-    const [ daypopup_button_loading, set_daypopup_buttion_loading ] = useState<boolean>(false);
 
     const [ scheduleContainerMaxH, setScheduleContainerMaxH ] = useState("h-90");
     const [ schedules, setSchedules ] = useState<Schedule[]>(day.schedules);
@@ -57,7 +58,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
 
     const changeSchedules: (t: Schedule[]) => void = (t) => {
         // 로딩 중(서버로 데이터 업로드 중)에는 로컬 데이터가 변경되면 안됨
-        if (!daypopup_button_loading) {
+        if (!daypopup_loading) {
             setSchedules(() => {
                 const prevIds = day.schedules.map(d => d.id);
                 const tIds = t.map(d => d.id);
@@ -69,8 +70,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
 
                 const isChanged = isContentChanged || prevIds.length !== tIds.length || prevIds.some((id, idx) => id != tIds[idx]);
 
-                if (isChanged) set_daypopup_button_active(true);
-                else set_daypopup_button_active(false);
+                set_daypopup_button_active(isChanged);
                 return t;
             });
         }
@@ -81,7 +81,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
             // 적용버튼 비활성화 및 로딩 인디케이터 활성화
             setAllowBgClose(false);
             set_daypopup_button_active(false);
-            set_daypopup_buttion_loading(true);
+            set_daypopup_loading(true);
 
             // Test: await new Promise(resolve => setTimeout(resolve, 5000));
 
@@ -94,13 +94,13 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
 
                 close();
                 setAllowBgClose(true);
-                set_daypopup_buttion_loading(false);
+                set_daypopup_loading(false);
                 await refresh();
             } catch (err) {
                 console.error(err);
                 setAllowBgClose(true);
-                set_daypopup_button_active(true);
-                set_daypopup_buttion_loading(false);
+                set_daypopup_button_active(false);
+                set_daypopup_loading(false);
                 return;
             }
         }
@@ -108,7 +108,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
 
     const onClose = () => {
         // 로딩 중에는 팝업 닫기 불가
-        if (!daypopup_button_loading) {
+        if (!daypopup_loading) {
             close();
             setSchedules(day.schedules);
             set_daypopup_button_active(false);
@@ -138,9 +138,9 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                         );
                         const lunar = Lunar.fromDate(date);
                         return (
-                            <span className="ml-3 text-gray-400">
+                            <span className="ml-2 text-gray-400">
                                 {getDayName(date, holidayInf.isHoliday)}
-                                <span className="mx-2">·</span>
+                                <span className="mx-1">·</span>
                                 (음) {lunar.getMonth()}월 {lunar.getDay()}일
                             </span>
                         );
@@ -157,7 +157,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                     {now.getFullYear() === showingCalendar.getFullYear() &&
                         now.getMonth() === showingCalendar.getMonth() &&
                         now.getDate() === currentDay && (
-                            <div className="px-2 h-5 text-[0.9rem] rounded bg-blue-900 font-bold inline-block">
+                            <div className="px-2 h-5 text-[0.9rem] rounded bg-blue-900 font-bold inline-block truncate">
                                 오늘
                             </div>
                         )}
@@ -183,7 +183,20 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
 
                 <div className="flex justify-between">
                     <div className="flex gap-2">
-                        <div className="p-2 rounded bg-neutral-500"><IoAddOutline /></div>
+                        <div className="p-2 rounded bg-neutral-500" onClick={() => {
+                            const to: Schedule[] = Array.from(schedules);
+
+                            const month: string = ((showingCalendar.getMonth() + 1).toString().length == 1) ? "0" + (showingCalendar.getMonth() + 1) : (showingCalendar.getMonth() + 1).toString();
+                            const day: string = (currentDay.toString().length == 1) ? "0" + (currentDay.toString()) : currentDay.toString();
+
+                            to.push({
+                                id: uuidv4(),
+                                date: `${showingCalendar.getFullYear()}${month}${day}`,
+                                content: "",
+                                isCompleted: false,
+                            });
+                            changeSchedules(to);
+                        }}><IoAddOutline /></div>
                         <div className="p-2 rounded bg-neutral-500"><VscHistory /></div>
                         <div className="p-2 rounded bg-neutral-500"><RiDeleteBin6Line /></div>
                     </div>
@@ -204,7 +217,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                         <AnimatePresence mode="popLayout">
                             {schedules.length === 0 ? (
                                 <div className="mt-20 text-center text-gray-400">
-                                    이 날은 일정 및 이벤트가 없습니다.
+                                    {daypopup_loading ? "로딩 중입니다..." : "이 날은 일정 및 이벤트가 없습니다."}
                                 </div>
                             ) : schedules.map(item => (
                                     <ScheduleItem
@@ -236,7 +249,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                     onPointerDown={onSave}
                 >
                     {
-                        daypopup_button_loading ? (
+                        daypopup_loading ? (
                             <div className={"w-5 h-5 border-2 border-white/20 border-t-white/40 rounded-full animate-spin"}>
                             </div>
                         ) : "저장"
@@ -258,7 +271,8 @@ const ScheduleItem = ({ itemId, schedules, setSchedules }: { itemId: string; sch
         <Reorder.Item
             value={item}
             layout
-            initial={{ opacity: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{
                 opacity: 0,
                 height: 0,

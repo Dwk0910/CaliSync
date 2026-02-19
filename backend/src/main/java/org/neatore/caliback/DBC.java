@@ -282,35 +282,39 @@ public record DBC (String dburl, String u_mid) {
         Map<String, Object> data = DataUtils.getRecordData(date.getUniqueId());
         int affectedRows;
 
-        if (data.get("it_content").toString().equals(content)) {
-            CaliBack.LOGGER.warn("Setting data request has been rejected. Original content and target content should not be same.");
-            return;
-        }
+        try {
+            if (!data.isEmpty()) {
+                if (data.get("it_content").toString().equals(content)) {
+                    CaliBack.LOGGER.warn("Setting data request has been rejected. Original content and target content should not be same.");
+                    return;
+                }
 
-        if (!data.isEmpty()) {
-            // Prepare for pstmt inserting (history, date)
-            String str_2 = HistoryUtils.addHistory(data.get("it_history").toString(), content);
-            String str_3 = Date.Now.toDate().getDate(0);
+                // Prepare for pstmt inserting (history, date)
+                String str_2 = HistoryUtils.addHistory(data.get("it_history").toString(), content);
+                String str_3 = Date.Now.toDate().getDate(0);
 
-            try (Connection conn = DriverManager.getConnection(dburl);
-                 PreparedStatement pstmt = conn.prepareStatement("UPDATE item_table SET it_content = ?, it_history = ?, it_mdate = ? WHERE it_unique_id = ?")
-            ) {
-                pstmt.setString(1, content);
-                pstmt.setString(2, str_2);
-                pstmt.setString(3, str_3);
-                pstmt.setString(4, date.getUniqueId());
+                try (Connection conn = DriverManager.getConnection(dburl);
+                     PreparedStatement pstmt = conn.prepareStatement("UPDATE item_table SET it_content = ?, it_history = ?, it_mdate = ? WHERE it_unique_id = ?")
+                ) {
+                    pstmt.setString(1, content);
+                    pstmt.setString(2, str_2);
+                    pstmt.setString(3, str_3);
+                    pstmt.setString(4, date.getUniqueId());
 
-                affectedRows = pstmt.executeUpdate();
-            } catch (SQLException e) {
-                CaliBack.LOGGER.error(e);
-                throw new RuntimeException(e);
+                    affectedRows = pstmt.executeUpdate();
+                } catch (SQLException e) {
+                    CaliBack.LOGGER.error(e);
+                    throw new RuntimeException(e);
+                }
+            } else {
+                addSchedule(date, content);
+                affectedRows = 1;
             }
-        } else {
-            CaliBack.LOGGER.info("NO SCHEDULE");
-            affectedRows = 0;
-        }
 
-        if (affectedRows > 0) CaliBack.LOGGER.info("Setting data for {} has been succeed.", date.getDate(2));
+            if (affectedRows > 0) CaliBack.LOGGER.info("Setting data for {} has been succeed.", date.getDate(2));
+        } catch (Exception e) {
+            CaliBack.LOGGER.error("Error occured while running setSchedule() method: {}", e);
+        }
     }
 
     public void removeSchedule(Date date, int seq) {
