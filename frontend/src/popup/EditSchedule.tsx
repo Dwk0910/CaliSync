@@ -60,6 +60,12 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
         // 로딩 중(서버로 데이터 업로드 중)에는 로컬 데이터가 변경되면 안됨
         if (!daypopup_loading) {
             setSchedules(() => {
+                // 스케줄 칸이 비어있는 경우 (negative) 무조건 disable
+                if (t.some(s => (s.content === ""))) {
+                    set_daypopup_button_active(false);
+                    return t;
+                }
+
                 const prevIds = day.schedules.map(d => d.id);
                 const tIds = t.map(d => d.id);
 
@@ -121,11 +127,11 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
         <div className="w-full h-full flex flex-col font-suite text-white justify-between">
             <div>
                 <span className="mx-auto mb-3 block text-center">일정 수정</span>
-                <span className="text-[1.5rem] -mt-2 -mb-1 text-gray-300">
+                <div className="text-[1.5rem] -mt-2 -mb-1 text-gray-300">
                     {showingCalendar.getFullYear()}년
-                </span>
+                </div>
 
-                <div>
+                <div className={"flex items-end"}>
                     <span className="text-[2rem]">
                         {showingCalendar.getMonth() + 1}월
                         <span className="ml-2">{currentDay}일</span>
@@ -138,11 +144,13 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                         );
                         const lunar = Lunar.fromDate(date);
                         return (
-                            <span className="ml-2 text-gray-400">
+                            <div className="ml-2 pb-1.5 text-gray-400 flex items-end">
                                 {getDayName(date, holidayInf.isHoliday)}
                                 <span className="mx-1">·</span>
-                                (음) {lunar.getMonth()}월 {lunar.getDay()}일
-                            </span>
+                                <span className={"text-[0.7rem] mr-1 mb-0.5"}>(음)</span>
+                                {/*해당 달이 윤달일 경우 월 앞에 -를 붙이고 나오기 때문에 무조건 +가 되도록 변경*/}
+                                {Math.abs(lunar.getMonth())}월 {lunar.getDay()}일
+                            </div>
                         );
                     })()}
                 </div>

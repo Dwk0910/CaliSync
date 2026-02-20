@@ -158,7 +158,7 @@ export default function App() {
 
             if (cd < monthInfo.startDay) {
                 // 시작이 일요일이 아닌 경우
-                calendarContent_[w].push(<div key={`empty-${cd}`} className="flex-1 border-b border-neutral-700 h-20 p-1 pt-2"></div>);
+                calendarContent_[w].push(<div key={`empty-${cd}`} className="flex-1 border-b border-neutral-700 h-20 pt-2"></div>);
             } else {
                 const day = rd;
                 const isToday = now.getFullYear() === showingCalendar.getFullYear() &&
@@ -181,7 +181,7 @@ export default function App() {
                 calendarContent_[w].push(
                     <div key={`day-${day}`}
                          className={clsx(
-                             "flex-1 text-center border-b border-neutral-700 h-20 p-1 pt-2 cursor-pointer",
+                             "flex-1 text-center border-b border-neutral-700 h-20 pt-2 cursor-pointer",
                              isToday && "bg-blue-300/20",
                              "flex flex-col"
                          )}
@@ -195,13 +195,15 @@ export default function App() {
                             isSat && "text-blue-500",
                             (isSun || hasHoliday) && "text-red-500"
                         )}>{day}</span>
-                        <div className={"w-full flex flex-wrap justify-start pl-1.5 pr-0.5"}>
+                        <div className={"w-full flex flex-wrap justify-start"}>
                             {
                                 (() => {
                                     const result: React.ReactNode[] = [];
                                     for (let i = 0; i < scheduleLength; i++) {
+                                        // 7개 이상부터는 표시X
+                                        if (i == 7) break;
                                         result.push (
-                                            <div key={`scheduleItem-${i}`} className={"mt-1 w-3 h-3"}>
+                                            <div key={`scheduleItem-${i}`} className={"mt-1 w-3 h-3 px-1.5"}>
                                                 <div className={"w-2 h-2 rounded-[100%] bg-gray-400/50"}/>
                                             </div>
                                         )
@@ -242,7 +244,7 @@ export default function App() {
             rd = 1;
             while (calendarContent_[w].length < 7) {
                 calendarContent_[w].push(
-                    <div key={`fill-${showingCalendar}-${rd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 pt-2 text-center text-neutral-700"}/>
+                    <div key={`fill-${showingCalendar}-${rd}`} className={"flex-1 border-b border-neutral-700 h-20 pt-2 text-center text-neutral-700"}/>
                 );
                 rd++;
             }
