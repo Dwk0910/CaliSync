@@ -246,3 +246,4 @@ frontend/package-lock.json
 data
 frontend/.env
 backup
+node_modules
