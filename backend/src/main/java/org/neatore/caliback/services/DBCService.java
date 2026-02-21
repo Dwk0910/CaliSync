@@ -10,10 +10,18 @@ import org.neatore.caliback.object.PacketResponse;
 
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.neatore.caliback.CaliBack.dbc;
 
 @Service
 public class DBCService {
+    private static final List<String> tasksRequireReload = Arrays.asList("POST", "POST_SET", "DELETE", "UPDATE");
+    public static boolean doesRequireReload(String method) {
+        return tasksRequireReload.contains(method);
+    }
+
     private final PacketResponse e404 = new PacketResponse(404, "Not Found"),
             e400 = new PacketResponse(400, "Bad Request"),
             e500 = new PacketResponse(500, "Internal Server Error");
