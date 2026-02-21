@@ -46,10 +46,16 @@ import org.json.JSONObject;
 import org.json.JSONArray;
 
 public class DBWatcher implements Runnable {
+    public static DBWatcher instance;
 
     private final Client client;
     public DBWatcher(Client client) {
+        instance = this;
         this.client = client;
+    }
+
+    public static DBWatcher getInstance() {
+        return instance;
     }
 
     @Override
@@ -264,13 +270,13 @@ public class DBWatcher implements Runnable {
 
         // 모든 데이터가 동기화되었으므로 queue 비우기 및 ignore 해제
         hasPendingChange.set(false);
-        if (!isManual[0]) ignore.set(false);
+        if (isManual.length > 0 && !isManual[0]) ignore.set(false);
 
         // 변경사항 적용
         CalendarProcess.refresh();
     }
 
-    private void initialUpdate() {
+    public void initialUpdate() {
         try {
             // WatchService registering 저지
             ignore.set(true);
@@ -278,19 +284,18 @@ public class DBWatcher implements Runnable {
             // 모든 동작은 watcherservice 등록 전에 완료해야 하므로 동기적으로 처리한다.
             // 데이터의 기준은 서버가 되어야 하므로, WatchService가 켜지기 전의 모든 내용은 소실되고 서버와 동기화시킨다.
             // clientCount를 받고 바로 try문을 닫아야 다음에 hard update를 할 때 db lock 에러가 뜨지 않는다.
-            long clientCount = 0L;
-            String serverCount = client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.UPDATE_INFO, null)).join().getJSONObject("body").getString("total_count");
+            String clientLstMdate = "", serverLstMdate = client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.UPDATE_INFO, null)).join().getJSONObject("body").getString("last_modified");
             try (Connection conn = DriverManager.getConnection(dburl);
-                 PreparedStatement pstmt = conn.prepareStatement("SELECT COUNT(*) AS count FROM item_table")
+                 PreparedStatement pstmt = conn.prepareStatement("SELECT MAX(it_mdate) AS last_modified FROM item_table;")
             ) {
                 ResultSet rs = pstmt.executeQuery();
-                if (rs.next()) clientCount = Long.parseLong(rs.getString("count"));
+                if (rs.next()) clientLstMdate = rs.getString("last_modified");
             } catch (SQLException e) {
                 CaliSync.LOGGER.fatal(e);
                 System.exit(-1);
             }
 
-            if (clientCount != Long.parseLong(serverCount)) {
+            if (!clientLstMdate.equals(serverLstMdate)) {
                 JSONObject res = client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.HARD_UPDATE, null)).join();
                 this.hardUpdate(res.getString("body"), true);
             }
@@ -301,5 +306,10 @@ public class DBWatcher implements Runnable {
                 ignore.notifyAll();
             }
         }
+    }
+
+    public void synchronize() {
+        JSONObject res = client.sendSignalWithResponse(new SignalPacket(SignalPacket.Method.HARD_UPDATE, null)).join();
+        this.hardUpdate(res.getString("body"));
     }
 }

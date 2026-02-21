@@ -5,15 +5,18 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.neatore.caliback.CaliBack;
+import org.neatore.caliback.services.AutoUpdateService;
 import org.neatore.caliback.services.SpecialDayService;
 import org.neatore.caliback.services.DBCService;
 import org.neatore.caliback.object.Date;
@@ -29,18 +32,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 @RestController
 @CrossOrigin(origins = { "http://localhost:5173" })
 @RequestMapping("/webservice")
 public class WebServiceController {
+    private final AutoUpdateService autoUpdateService;
     private final SpecialDayService specialDayService;
     private final DBCService dbcService;
 
     private Map<SpecialDay, SpecialDay> replaceTargets = null;
     private Map<String, SpecialDay> additions = null;
 
-    public WebServiceController(SpecialDayService specialDayService, DBCService dbcService) {
+    public WebServiceController(AutoUpdateService autoUpdateService, SpecialDayService specialDayService, DBCService dbcService) {
+        this.autoUpdateService = autoUpdateService;
         this.specialDayService = specialDayService;
         this.dbcService = dbcService;
 
@@ -104,7 +108,7 @@ public class WebServiceController {
         JSONObject data = new JSONObject();
         data.put("date", date.getDate(1));
 
-        String resultstr = dbcService.process(new JSONObject().put("method", "GET_MONTH").put("data", data)).responseBody().toString();
+        String resultstr = dbcService.process(new JSONObject().put("method", "GET_MONTH").put("data", data)).getResponseBody().toString();
         JSONArray array = new JSONArray(resultstr);
 
         result.put("schedules", array);
@@ -113,7 +117,7 @@ public class WebServiceController {
     }
 
     @PostMapping("/setSchedules")
-    public ResponseEntity<String> setSchedules(@RequestBody Map<String, Object> req) {
+    public ResponseEntity<String> setSchedules(@RequestHeader("X-Client-ID") String sessionId, @RequestBody Map<String, Object> req) {
         Date date = Date.parseDate(req.get("date").toString());
 
         StringBuilder content = new StringBuilder();
@@ -129,6 +133,10 @@ public class WebServiceController {
         data.put("content", content.toString());
 
         dbcService.process(new JSONObject().put("method", "POST_SET").put("data", data));
+
+        // 이 동작은 전체 리로드를 요함
+        autoUpdateService.trigger(sessionId);
+
         return ResponseEntity.ok().build();
     }
 }

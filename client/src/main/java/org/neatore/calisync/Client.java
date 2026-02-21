@@ -4,6 +4,7 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import org.neatore.calisync.packet.SignalPacket;
+import org.neatore.calisync.service.DBWatcher;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +16,6 @@ import java.net.URI;
 
 import org.json.JSONObject;
 import org.json.JSONException;
-
 
 public class Client extends WebSocketClient {
     public Client(URI serverUri) { super(serverUri); }
@@ -56,6 +56,14 @@ public class Client extends WebSocketClient {
     public void onMessage(String s) {
         JSONObject obj = new JSONObject(s);
         try {
+            if (obj.getInt("code") == 600) {
+                new Thread(() -> {
+                    CaliSync.LOGGER.info("The server sent refresh signal. Synchronizing with server database...");
+                    DBWatcher.getInstance().synchronize();
+                }).start();
+                return;
+            }
+
             String requestId = obj.getString("requestId");
             CompletableFuture<JSONObject> future = pendingResponses.get(requestId);
             if (future != null) {

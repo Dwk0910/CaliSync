@@ -41,9 +41,12 @@ export type Day = {
 export default function App() {
     // ** DIFITIONS **
 
-    const backend = import.meta.env.VITE_API_BACKEND_ADDRESS;
+    const servurl = import.meta.env.VITE_API_BACKEND_ADDRESS;
+    const backend = "http://" + servurl;
 
     const [now] = useState<Date>(() => new Date());
+
+    const [sessionId, setSessionId] = useState<string>("");
 
     const [showingCalendar, setShowingCalendar] = useState<Date>(now);
     const [currentDay, setCurrentDay] = useState<number>(0);
@@ -143,8 +146,26 @@ export default function App() {
     }, [backend, showingCalendar]);
 
     useEffect(() => {
+        // 웹소켓 통신 시도 및 id 등록
+        const socket = new WebSocket("ws://" + servurl + "/caliweb");
+        socket.onmessage = ((e) => {
+            const data = JSON.parse(e.data);
+            switch (data["code"]) {
+                case 0:
+                    setSessionId(data["body"])
+                break;
+                case 600:
+                    (async () => {
+                        await fetchSchedules();
+                    })();
+                break;
+            }
+        });
+
         void fetchSchedules();
-    }, [fetchSchedules]);
+
+        return () => socket.close();
+    }, [fetchSchedules, servurl]);
 
     // 백엔드 서버 통신 시도 및 국가 이벤트, 사용자 이벤트 호출하기
 
@@ -273,7 +294,7 @@ export default function App() {
                     if (prev.content == "EditSchedule") return {...prev, allowBgClose: allow }
                     else return prev;
                 })
-            }}/>,
+            }} sessionId={ sessionId } backend={ backend }/>,
             // 변경점이 있거나 로딩중일땐 배경눌러 팝업닫기를 차단하고, 그 외의 상황에서는 풀기
             allowBgClose: false,
             height: "650px"
