@@ -1,12 +1,12 @@
-package org.neatore.caliback.util;
-
-import org.neatore.caliback.CaliBack;
-import org.neatore.caliback.object.Date;
+package org.neatore.calisync.util;
 
 import org.jetbrains.annotations.NotNull;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import org.neatore.calisync.CaliSync;
+import org.neatore.calisync.object.Date;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -20,16 +20,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public final class HistoryParser {
+public final class HistoryUtils {
     public static JSONArray getHistory(@NotNull String dburl, @NotNull String it_unique_id) {
         try (Connection conn = DriverManager.getConnection(dburl);
              PreparedStatement pstmt = conn.prepareStatement("SELECT it_history FROM item_table WHERE it_unique_id = ?;")
         ) {
             pstmt.setString(1, it_unique_id);
             ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) return HistoryParser.decode(rs.getString("it_history"));
+            if (rs.next()) return HistoryUtils.decode(rs.getString("it_history"));
         } catch (SQLException e) {
-            CaliBack.LOGGER.error(e);
+            CaliSync.LOGGER.error(e);
         }
         return null;
     }
@@ -45,6 +45,12 @@ public final class HistoryParser {
         return array;
     }
 
+    public static String addHistory(String appended, String appender_content) {
+        JSONArray array = HistoryUtils.decode(appended);
+        array.put(new JSONObject().put("content", appender_content).put("time", Date.Now.getUnixTime()));
+        return HistoryUtils.encode(array);
+    }
+
     public static String encode(@NotNull JSONArray history) {
         // 순서 정렬 (content -> time)
         List<Map<String, Object>> history_ = new ArrayList<>();
@@ -56,7 +62,10 @@ public final class HistoryParser {
             history_.add(map);
         }
 
-        String jsonString = new JSONArray(history_).toString();
+        String jsonString = new JSONArray(history_).toString()
+                // JSON 규격 준수
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
 
         // JSON unicode escape
         StringBuilder sb = new StringBuilder();
@@ -69,7 +78,11 @@ public final class HistoryParser {
     }
 
     public static JSONArray decode(@NotNull String content) {
-        JSONArray array = new JSONArray(content.replace("|&quot;|", "\""));
+        String str = content.replace("|&quot;|", "\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
+
+        JSONArray array = new JSONArray(str);
 
         List<Map<String, Object>> newArray = new ArrayList<>();
         for (Object o : array) {

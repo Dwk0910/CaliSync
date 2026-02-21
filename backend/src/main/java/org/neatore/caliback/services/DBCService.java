@@ -21,13 +21,21 @@ public class DBCService {
     public PacketResponse process(JSONObject obj) {
         try {
             JSONObject data = obj.getJSONObject("data");
-            Date date = data.isNull("date") ? new Date("", "", "") : Date.parseDate(data.get("date").toString());
+            Date date = data.isNull("date") ? new Date("0000", "", "") : Date.parseDate(data.get("date").toString());
 
             switch (obj.getString("method")) {
                 case "POST" -> {
                     try {
                         String content = data.get("content").toString();
                         dbc.addSchedule(date, content);
+                        return new PacketResponse(201, null);
+                    } catch (NullPointerException e) { return e400; }
+                }
+
+                case "POST_SET" -> {
+                    try {
+                        String content = data.get("content").toString();
+                        dbc.setSchedule(date, content);
                         return new PacketResponse(201, null);
                     } catch (NullPointerException e) { return e400; }
                 }
@@ -42,6 +50,10 @@ public class DBCService {
 
                 case "GET" -> {
                     return new PacketResponse(200, dbc.getSchedulesAsJson(date));
+                }
+
+                case "GET_MONTH" -> {
+                    return new PacketResponse(200, dbc.getMonthSchedules(date));
                 }
 
                 case "UPDATE_INFO" -> {

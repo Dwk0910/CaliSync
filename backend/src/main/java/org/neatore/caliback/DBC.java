@@ -6,8 +6,8 @@ import org.neatore.caliback.controller.HardUpdateController;
 import org.neatore.caliback.object.Date;
 import org.neatore.caliback.object.Day;
 import org.neatore.caliback.object.Schedule;
-import org.neatore.caliback.util.Analyze;
-import org.neatore.caliback.util.HistoryParser;
+import org.neatore.caliback.util.DataUtils;
+import org.neatore.caliback.util.HistoryUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -20,6 +20,7 @@ import java.sql.SQLException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record DBC (String dburl, String u_mid) {
@@ -48,7 +49,7 @@ public record DBC (String dburl, String u_mid) {
             PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM item_table WHERE it_unique_id = ?;")) {
             pstmt.setString(1, it_unique_id);
             ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) return Analyze.getSchedules(rs);
+            if (rs.next()) return DataUtils.getSchedules(rs);
         } catch (SQLException e) {
             CaliBack.LOGGER.error(e);
             throw new RuntimeException();
@@ -70,6 +71,45 @@ public record DBC (String dburl, String u_mid) {
         }
 
         return result;
+    }
+
+    public JSONArray getMonthSchedules(Date date) {
+        List<Day> result;
+        try (Connection conn = DriverManager.getConnection(dburl);
+             PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM item_table WHERE it_unique_id LIKE ?;")
+        ) {
+            pstmt.setString(1, "dkcal_mdays_" + date.year + date.month + "%");
+            ResultSet rs = pstmt.executeQuery();
+            result = DataUtils.getDays(rs);
+        } catch (SQLException | IllegalArgumentException e) {
+            CaliBack.LOGGER.error(e);
+            throw new RuntimeException(e);
+        }
+
+        return new JSONArray(result.stream()
+                .map(d -> {
+                    JSONObject obj = new JSONObject();
+                    obj.put("date", d.date().getDate(1));
+                    obj.put("bgColor", d.bgColor());
+                    obj.put("mdate", d.mdate().getDate(1));
+                    JSONArray schedArray = new JSONArray();
+                    int i = 0;
+                    for (Schedule sched : d.schedules()) {
+                        JSONObject schedObj = new JSONObject();
+                        schedObj.put("content", sched.content);
+                        schedObj.put("date", sched.date.getDate(1));
+                        schedObj.put("isCompleted", sched.isCompleted);
+
+                        // 나중에 드래그를 구현할 때 고유 id가 있어야 함
+                        schedObj.put("id", "%s-%d".formatted(date, i));
+                        schedArray.put(schedObj);
+                        i++;
+                    }
+                    obj.put("schedules", schedArray);
+                    return obj;
+                })
+                .toList()
+        );
     }
 
     public JSONObject getUpdateInfo() {
@@ -114,7 +154,7 @@ public record DBC (String dburl, String u_mid) {
                     schedules,
                     Date.parseDate(obj.getString("mdate")),
                     obj.getString("bgColor"),
-                    HistoryParser.encode(obj.getJSONArray("history"))
+                    HistoryUtils.encode(obj.getJSONArray("history"))
             ));
         }
         update(days);
@@ -129,7 +169,7 @@ public record DBC (String dburl, String u_mid) {
                  PreparedStatement pstmt = conn.prepareStatement("UPDATE item_table SET it_bgcolor = ?, it_content = ?, it_history = ?, it_mdate = ? WHERE it_unique_id = ?;")
             ) {
                 StringBuilder content = new StringBuilder();
-                day.scheduleList().forEach(i -> content.append(content.isEmpty() ? i.content : "\n" + i.content));
+                day.schedules().forEach(i -> content.append(content.isEmpty() ? i.content : "\n" + i.content));
                 pstmt.setString(1, dayObj.getString("bgColor"));
                 pstmt.setString(2, content.toString());
                 pstmt.setString(3, day.history());
@@ -166,46 +206,43 @@ public record DBC (String dburl, String u_mid) {
     public void addSchedule(Schedule schedule, String it_date) { addSchedule(schedule.date, schedule.content, it_date); }
     public void addSchedule(Date date, String content) { addSchedule(date, content, Date.Now.format("yyyy-MM-dd HH:mm:ss")); }
     public void addSchedule(Date date, String content, String it_date) {
-        String it_unique_id = "dkcal_mdays_" + date.getDate(1);
+        String it_unique_id = date.getUniqueId();
         try (Connection conn = DriverManager.getConnection(dburl)) {
             boolean exists = false;
             String tHistory, tContent = null;
 
+            Map<String, Object> data = DataUtils.getRecordData(it_unique_id);
             // Checks that data exists
-            try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM item_table WHERE it_unique_id = ?;")) {
-                pstmt.setString(1, it_unique_id);
-                ResultSet rs = pstmt.executeQuery();
+            // 해당 날짜 데이터 존재
+            if (!data.isEmpty()) {
+                exists = true;
 
-                // 해당 날짜 데이터 존재
-                if (rs.next()) {
-                    exists = true;
+                // 업데이트를 위해 기존 데이터에 새로운 데이터 추가
+                String orig_content_str = data.get("it_content").toString();
+                if (!orig_content_str.isEmpty()) tContent = orig_content_str + "\n" + content;
+                else tContent = content;
 
-                    // 업데이트를 위해 기존 데이터에 새로운 데이터 추가
-                    String orig_content_str = rs.getString("it_content");
-                    if (!orig_content_str.isEmpty()) tContent = orig_content_str + "\n" + content;
-                    else tContent = content;
+                // 기존 history에 새로운 history 추가
+                JSONArray array = HistoryUtils.decode(data.get("it_history").toString());
 
-                    // 기존 history에 새로운 history 추가
-                    JSONArray array = HistoryParser.decode(rs.getString("it_history"));
+                JSONObject obj = new JSONObject();
+                obj.put("content", tContent);
+                obj.put("time", Date.Now.getUnixTime());
+                array.put(obj);
 
-                    JSONObject obj = new JSONObject();
-                    obj.put("content", tContent);
-                    obj.put("time", Date.Now.getUnixTime());
-                    array.put(obj);
+                tHistory = HistoryUtils.encode(array);
+            } else {
+                // 기존 데이터가 없으므로 새로운 history 생성
+                JSONArray array = new JSONArray();
+                JSONObject obj = new JSONObject();
+                obj.put("content", content);
+                obj.put("time", Date.Now.getUnixTime());
+                array.put(obj);
 
-                    tHistory = HistoryParser.encode(array);
-                } else {
-                    // 기존 데이터가 없으므로 새로운 history 생성
-                    JSONArray array = new JSONArray();
-                    JSONObject obj = new JSONObject();
-                    obj.put("content", content);
-                    obj.put("time", Date.Now.getUnixTime());
-                    array.put(obj);
-
-                    tHistory = HistoryParser.encode(array);
-                }
+                tHistory = HistoryUtils.encode(array);
             }
 
+            // UPSERT
             int affectedRows;
             if (exists) {
                 // 기존 데이터가 있으므로 UPDATE
@@ -241,6 +278,45 @@ public record DBC (String dburl, String u_mid) {
         }
     }
 
+    public void setSchedule(Date date, String content) {
+        Map<String, Object> data = DataUtils.getRecordData(date.getUniqueId());
+        int affectedRows;
+
+        try {
+            if (!data.isEmpty()) {
+                if (data.get("it_content").toString().equals(content)) {
+                    CaliBack.LOGGER.warn("Setting data request has been rejected. Original content and target content should not be same.");
+                    return;
+                }
+
+                // Prepare for pstmt inserting (history, date)
+                String str_2 = HistoryUtils.addHistory(data.get("it_history").toString(), content);
+                String str_3 = Date.Now.toDate().getDate(0);
+
+                try (Connection conn = DriverManager.getConnection(dburl);
+                     PreparedStatement pstmt = conn.prepareStatement("UPDATE item_table SET it_content = ?, it_history = ?, it_mdate = ? WHERE it_unique_id = ?")
+                ) {
+                    pstmt.setString(1, content);
+                    pstmt.setString(2, str_2);
+                    pstmt.setString(3, str_3);
+                    pstmt.setString(4, date.getUniqueId());
+
+                    affectedRows = pstmt.executeUpdate();
+                } catch (SQLException e) {
+                    CaliBack.LOGGER.error(e);
+                    throw new RuntimeException(e);
+                }
+            } else {
+                addSchedule(date, content);
+                affectedRows = 1;
+            }
+
+            if (affectedRows > 0) CaliBack.LOGGER.info("Setting data for {} has been succeed.", date.getDate(2));
+        } catch (Exception e) {
+            CaliBack.LOGGER.error("Error occured while running setSchedule() method: {}", e);
+        }
+    }
+
     public void removeSchedule(Date date, int seq) {
         String it_unique_id = date.getUniqueId();
 
@@ -261,7 +337,7 @@ public record DBC (String dburl, String u_mid) {
         }
 
         if (changed) {
-            String newHistory = HistoryParser.encode(HistoryParser.addHistory(dburl, it_unique_id, it_content.toString()));
+            String newHistory = HistoryUtils.encode(HistoryUtils.addHistory(dburl, it_unique_id, it_content.toString()));
 
             int affectedRows = 0;
             try (Connection conn = DriverManager.getConnection(dburl);
@@ -290,7 +366,7 @@ public record DBC (String dburl, String u_mid) {
             return;
         }
 
-        String newHistory = HistoryParser.encode(HistoryParser.addHistory(dburl, date.getUniqueId(), ""));
+        String newHistory = HistoryUtils.encode(HistoryUtils.addHistory(dburl, date.getUniqueId(), ""));
         try (Connection conn = DriverManager.getConnection(dburl);
             PreparedStatement pstmt = conn.prepareStatement("UPDATE item_table SET it_content = ?, it_history = ?, it_mdate = ? WHERE it_unique_id = ?;")) {
             pstmt.setString(1, "");

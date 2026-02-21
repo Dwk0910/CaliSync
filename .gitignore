@@ -243,3 +243,6 @@ build/**
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,jetbrains,java,gradle,maven,visualstudiocode
 test/calendar.db
 frontend/package-lock.json
+data
+frontend/.env
+backup

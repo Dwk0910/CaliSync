@@ -1,7 +1,7 @@
 package org.neatore.calisync.object;
 
 import org.json.JSONObject;
-import org.neatore.calisync.util.HistoryParser;
+import org.neatore.calisync.util.HistoryUtils;
 
 import java.util.List;
 
@@ -16,7 +16,7 @@ public record Day(Date date, List<Schedule> scheduleList, Date cdate, Date mdate
         obj.put("cdate", cdate.getDate(0));
         obj.put("mdate", mdate.getDate(0));
         obj.put("bgColor", bgColor);
-        obj.put("history", HistoryParser.decode(history));
+        obj.put("history", HistoryUtils.decode(history));
         return obj;
     }
 }

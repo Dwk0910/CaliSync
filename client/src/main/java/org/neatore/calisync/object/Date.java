@@ -7,13 +7,31 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Date {
-    private final String year, month, day;
+    public final String year, month, day;
     private String hour, minute, second;
 
     public Date(String year, String month, String day) {
+        if (year.length() != 4) throw new IllegalArgumentException("Year must be 4 digits.");
+
         this.year = year;
-        this.month = month;
-        this.day = day;
+        this.month = month.length() == 1 ? "0" + month : month;
+        this.day = day.length() == 1 ? "0" + day : day;
+    }
+
+    /**
+     * Auto parseDate constructor
+     * @see org.neatore.calisync.object.Date#parseDate(String s)
+     * @param date parse target
+     */
+    public Date(String date) {
+        // Try to parse it
+        Date dateObj = Date.parseDate(date);
+        this.year = dateObj.year;
+        this.month = dateObj.month;
+        this.day = dateObj.day;
+        this.hour = dateObj.hour;
+        this.minute = dateObj.minute;
+        this.second = dateObj.second;
     }
 
     // ** DEFUALT ZONE ID **
@@ -23,7 +41,9 @@ public class Date {
         public static Date toDate() {
             Instant instant = Instant.now();
             ZonedDateTime zdt = instant.atZone(timeZone);
-            return new Date(Integer.toString(zdt.getYear()), Integer.toString(zdt.getMonthValue()), Integer.toString(zdt.getDayOfMonth()));
+            Date nowDate = new Date(Integer.toString(zdt.getYear()), Integer.toString(zdt.getMonthValue()), Integer.toString(zdt.getDayOfMonth()));
+            nowDate.setTime(Integer.toString(zdt.getHour()), Integer.toString(zdt.getMinute()), Integer.toString(zdt.getSecond()));
+            return nowDate;
         }
 
         public static String getUnixTime() {
