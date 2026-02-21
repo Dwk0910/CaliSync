@@ -4,11 +4,12 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 
 import { clsx } from 'clsx';
 
-import { FaPlus, FaArrowLeft, FaArrowRight } from "react-icons/fa6";
+import { FaArrowLeft, FaArrowRight } from "react-icons/fa6";
 import { IoTerminalOutline } from "react-icons/io5";
-import { GrUpdate } from "react-icons/gr";
-import { CiWarning } from 'react-icons/ci'
 import { MdMyLocation } from "react-icons/md";
+import { CiWarning } from 'react-icons/ci'
+import { RxReload } from "react-icons/rx";
+import { GrUpdate } from "react-icons/gr";
 
 // popups
 import MoveTo from "./popup/MoveTo";
@@ -325,7 +326,7 @@ export default function App() {
                         }} className={clsx(
                             "fixed w-screen bg-neutral-700",
                             "transition-all duration-200 ease-in-out",
-                            "pt-6 px-6",
+                            "pt-6 px-5",
                         )} onPointerDown={(event) => event.stopPropagation()}>
                             { popupConfig?.component }
                         </div>
@@ -421,7 +422,7 @@ export default function App() {
                     <FaArrowRight className={"ml-5"} onPointerDown={(() => {
                         setPopup(prev => ({ ...prev, open: true, content: "MoveTo" }))
                     })}/>
-                    <FaPlus className={"ml-5"}/>
+                    <RxReload className={"ml-5 font-bold"} onPointerDown={async () => await fetchSchedules()}/>
                 </div>
                 <div className={clsx("inline-block p-2 text-green-300/30 animate-spin transition-opacity duration-300 ease-in-out", loadingSchedules ? "opacity-100" : "opacity-0")}>
                     <GrUpdate/>

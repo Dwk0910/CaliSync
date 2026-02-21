@@ -147,7 +147,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                             <div className="ml-2 pb-1.5 text-gray-400 flex items-end">
                                 {getDayName(date, holidayInf.isHoliday)}
                                 <span className="mx-1">·</span>
-                                <span className={"text-[0.7rem] mr-1 mb-0.5"}>(음)</span>
+                                <span className={"text-[0.9rem] mr-1"}>(음)</span>
                                 {/*해당 달이 윤달일 경우 월 앞에 -를 붙이고 나오기 때문에 무조건 +가 되도록 변경*/}
                                 {Math.abs(lunar.getMonth())}월 {lunar.getDay()}일
                             </div>
