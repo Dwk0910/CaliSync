@@ -31,11 +31,11 @@ type Props = Popup<{
     refresh: () => Promise<void>;
     getDayName: (date: Date, isHoliday: boolean) => React.ReactNode;
     setAllowBgClose: (allow: boolean) => void;
+    sessionId: string;
+    backend: string;
 }>;
 
-export default function EditSchedule({ showingCalendar, now, day, holidayInf, getDayName, refresh, close, setAllowBgClose }: Props) {
-    const backend = import.meta.env.VITE_API_BACKEND_ADDRESS;
-
+export default function EditSchedule({ showingCalendar, now, day, holidayInf, getDayName, refresh, close, setAllowBgClose, sessionId, backend }: Props) {
     const [ daypopup_loading, set_daypopup_loading ] = useState<boolean>(false);
     const [ daypopup_button_active, set_daypopup_button_active ] = useState<boolean>(false);
 
@@ -96,6 +96,10 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                     date: day.date,
                     schedules,
                     bgColor: "",
+                }, {
+                    headers: {
+                        'X-Client-ID': sessionId
+                    }
                 });
 
                 close();
