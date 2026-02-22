@@ -15,8 +15,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.sql.SQLOutput;
-
 public class ClientHandler extends TextWebSocketHandler {
     private final AutoUpdateService autoUpdateService;
     private final DBCService dbcService;
