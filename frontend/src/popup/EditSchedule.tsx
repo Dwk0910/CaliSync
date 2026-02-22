@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 import no_color from '../assets/editscheudle_popup_asset/no_color.png';
 
@@ -39,18 +39,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
     const [ daypopup_loading, set_daypopup_loading ] = useState<boolean>(false);
     const [ daypopup_button_active, set_daypopup_button_active ] = useState<boolean>(false);
 
-    const [ scheduleContainerMaxH, setScheduleContainerMaxH ] = useState("h-90");
     const [ schedules, setSchedules ] = useState<Schedule[]>(day.schedules);
-
-    const listRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const el = listRef.current;
-        if (!el) return;
-
-        if (el.clientHeight > 20) setScheduleContainerMaxH("h-75");
-        else if (el.clientHeight !== 0) setScheduleContainerMaxH("h-83");
-    }, [holidayInf]);
 
     useEffect(() => {
         setSchedules(day.schedules);
@@ -128,8 +117,8 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
     const currentDay = parseInt(day.date.slice(-2));
 
     return (
-        <div className="w-full h-full flex flex-col font-suite text-white justify-between">
-            <div>
+        <div className="w-full h-full flex flex-col font-suite text-white">
+            <div className={"flex flex-col grow"}>
                 <span className="mx-auto mb-3 block text-center">일정 수정</span>
                 <div className="text-[1.5rem] -mt-2 -mb-1 text-gray-300">
                     {showingCalendar.getFullYear()}년
@@ -160,7 +149,6 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                 </div>
 
                 <div
-                    ref={listRef}
                     className={clsx(
                         holidayInf.specdays.length !== 0 &&
                         "flex flex-wrap mt-1 min-h-5 max-h-12 overflow-y-scroll gap-2"
@@ -217,13 +205,13 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                     </div>
                 </div>
 
-                <div className="w-full">
+                <div className="w-full grow">
                     <Reorder.Group
                         layout
                         axis="y"
                         values={schedules}
                         onReorder={changeSchedules}
-                        className={clsx("mt-4 overflow-y-scroll", scheduleContainerMaxH)}
+                        className={clsx("mt-4 overflow-y-scroll h-full")}
                         style={{ scrollbarWidth: "none" }}
                     >
                         <AnimatePresence mode="popLayout">
