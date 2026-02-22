@@ -452,7 +452,7 @@ export default function App() {
             <div
               style={{
                 height,
-                marginBottom: popup.open ? "0px" : `-${height}`,
+                bottom: popup.open ? "0" : `-${height}`
               }}
               className={clsx(
                 "fixed w-screen bg-neutral-700",
