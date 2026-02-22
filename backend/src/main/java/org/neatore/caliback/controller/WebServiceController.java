@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@CrossOrigin(origins = { "http://localhost:5173", "https://calisync.vercel.app/" })
+@CrossOrigin(origins = { "http://localhost:5173", "https://calisync.vercel.app" })
 @RequestMapping("/webservice")
 public class WebServiceController {
     private final AutoUpdateService autoUpdateService;
