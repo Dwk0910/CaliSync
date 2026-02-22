@@ -42,7 +42,7 @@ export default function App() {
   // ** DIFITIONS **
 
   const servurl = import.meta.env.VITE_API_BACKEND_ADDRESS;
-  const backend = "http://" + servurl;
+  const backend = "https://" + servurl;
 
   const [now] = useState<Date>(() => new Date());
 
@@ -187,7 +187,7 @@ export default function App() {
 
   useEffect(() => {
     // 웹소켓 통신 시도 및 id 등록
-    const socket = new WebSocket("ws://" + servurl + "/caliweb");
+    const socket = new WebSocket("wss://" + servurl + "/caliweb");
     socket.onmessage = (e) => {
       const data = JSON.parse(e.data);
       switch (data["code"]) {
