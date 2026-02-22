@@ -32,6 +32,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -66,9 +67,15 @@ public class SpecialDayService {
                     needUpdate = true;
 
                 // 또는, 타깃 정보가 올해 정보인데 반해 마지막 업데이트 날짜가 작년 이상으로 과거일 경우
-                if (target_year.equals(now.year) && Integer.parseInt(now.year) > Integer.parseInt(Date.parseDate(data_.get("updated_at").toString()).year))
+                else if (target_year.equals(now.year) && Integer.parseInt(now.year) > Integer.parseInt(Date.parseDate(data_.get("updated_at").toString()).year))
                     needUpdate = true;
 
+                // tfst, holi, rest, other, anni 중 비어있는 배열이 있는 경우 (정상 응답의 경우 모든 기념일 구분에 데이터가 있어야 함)
+                final String[] keys = {"tfst_days", "holi_days", "rest_days", "other_days", "anni_days"};
+                for (String key : keys) {
+                    if (needUpdate) break;
+                    if (data_.optJSONArray(key).isEmpty()) needUpdate = true;
+                }
             } catch (JSONException e) {
                 // JSON파일에 이상이 있는 경우
                 needUpdate = true;
@@ -198,10 +205,13 @@ public class SpecialDayService {
         List<String> seq = List.of("holi", "rest", "anni", "tfst", "other");
 
         // 커스텀 기념일들을 type을 기반으로, 이번 달(date.month)에 해당하는 SpecialDay만 분류
-        final Map<String, List<SpecialDay>> additionals = additionals_.entrySet().stream()
-                .filter(entry -> entry.getKey().startsWith(start))
-                .map(Map.Entry::getValue)
-                .collect(Collectors.groupingBy(SpecialDay::type));
+        final Map<String, List<SpecialDay>> additionals = Optional.ofNullable(additionals_)
+                .map(map -> map.entrySet().stream()
+                        .filter(entry -> entry.getKey().startsWith(start))
+                        .map(Map.Entry::getValue)
+                        .collect(Collectors.groupingBy(SpecialDay::type))
+                )
+                .orElseGet(Collections::emptyMap);
 
         for (String s : seq) {
             // From API
