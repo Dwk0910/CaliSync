@@ -1,7 +1,7 @@
 import * as React from "react";
 import axios from "axios";
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 
 import { clsx } from "clsx";
 
@@ -143,6 +143,11 @@ export default function App() {
             const response = await axios.get(
                 backend +
                 `/webservice/getMonthInfo/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
+                {
+                    headers: {
+                        'X-Client-Token': localStorage.getItem("calisync_token")
+                    }
+                }
             );
 
             // key: specialDays, schedules
@@ -192,6 +197,13 @@ export default function App() {
         }
     }, [backend, showingCalendar]);
 
+    // fetchSchedules는 showingCalendar가 바뀔때마다 수시로 바뀌므로 간접적으로 접근해야 페이지 전환마다 인증과 웹소켓 연결이 반복되지 않음
+    const fetchRef = useRef(fetchSchedules);
+    useEffect(() => {
+        fetchRef.current = fetchSchedules;
+        void fetchSchedules();
+    }, [fetchSchedules]);
+
     useEffect(() => {
         // 클라이언트 인증
         const token = localStorage.getItem("calisync_token");
@@ -203,25 +215,48 @@ export default function App() {
         } else setAuthorized(false);
 
         // 웹소켓 통신 시도 및 id 등록
-        const socket = new WebSocket((protoSecured ? "wss://" : "ws://") + servurl + "/caliweb");
-        socket.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            switch (data["code"]) {
-                case 0:
-                    setSessionId(data["body"]);
-                    break;
-                case 600:
-                    (async () => {
-                        await fetchSchedules();
-                    })();
-                    break;
+        let socket: WebSocket;
+        const socketConnect = () => {
+            socket = new WebSocket((protoSecured ? "wss://" : "ws://") + servurl + "/caliweb");
+            socket.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                switch (data["code"]) {
+                    case 0:
+                        setSessionId(data["body"]);
+                        break;
+                    case 600:
+                        (async () => {
+                            await fetchRef.current();
+                        })();
+                        break;
+                }
+            };
+
+            socket.onerror = (err) => {
+                // 에러 로깅 및 socket.onclose 유도
+                console.error(err);
+                socket.close();
             }
-        };
 
-        void fetchSchedules();
+            socket.onclose = async () => {
+                // 재귀호출로 소켓 재연결 시도
+                console.log("WebSocket closed. Reconnecting in 1s...")
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                socketConnect();
+            }
+        }
 
-        return () => socket.close();
-    }, [fetchSchedules, servurl, protoSecured, backend]);
+        // 최초 웹소켓 연결
+        socketConnect();
+
+        return () => {
+            if (socket) {
+                // 클린업 시에는 재연결 방지
+                socket.onclose = null;
+                socket.close();
+            }
+        }
+    }, [backend, protoSecured, servurl]);
 
     // 백엔드 서버 통신 시도 및 국가 이벤트, 사용자 이벤트 호출하기
 

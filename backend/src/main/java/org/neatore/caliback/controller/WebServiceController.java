@@ -4,6 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.neatore.caliback.CaliBack;
+import org.neatore.caliback.services.UserVerifyService;
 import org.neatore.caliback.services.AutoUpdateService;
 import org.neatore.caliback.services.SpecialDayService;
 import org.neatore.caliback.services.DBCService;
@@ -34,6 +36,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/webservice")
 public class WebServiceController {
+    private final UserVerifyService uvs;
     private final AutoUpdateService autoUpdateService;
     private final SpecialDayService specialDayService;
     private final DBCService dbcService;
@@ -41,7 +44,8 @@ public class WebServiceController {
     private Map<SpecialDay, SpecialDay> replaceTargets = null;
     private Map<String, SpecialDay> additions = null;
 
-    public WebServiceController(AutoUpdateService autoUpdateService, SpecialDayService specialDayService, DBCService dbcService) {
+    public WebServiceController(UserVerifyService uvs, AutoUpdateService autoUpdateService, SpecialDayService specialDayService, DBCService dbcService) {
+        this.uvs = uvs;
         this.autoUpdateService = autoUpdateService;
         this.specialDayService = specialDayService;
         this.dbcService = dbcService;
@@ -80,7 +84,9 @@ public class WebServiceController {
     }
 
     @GetMapping("/getMonthInfo/{year}/{month}")
-    public ResponseEntity<String> getSpecialDays(@PathVariable String year, @PathVariable String month) {
+    public ResponseEntity<String> getSpecialDays(@RequestHeader("X-Client-Token") String sessionToken, @PathVariable String year, @PathVariable String month) {
+        if (!uvs.verify(sessionToken)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+
         JSONObject result = new JSONObject();
 
         // Special Days
@@ -115,7 +121,9 @@ public class WebServiceController {
     }
 
     @PostMapping("/setSchedules")
-    public ResponseEntity<String> setSchedules(@RequestHeader("X-Client-ID") String sessionId, @RequestBody Map<String, Object> req) {
+    public ResponseEntity<String> setSchedules(@RequestHeader("X-Client-Token") String sessionToken, @RequestHeader("X-Client-ID") String sessionId, @RequestBody Map<String, Object> req) {
+        if (!uvs.verify(sessionToken)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+
         Date date = Date.parseDate(req.get("date").toString());
 
         StringBuilder content = new StringBuilder();
