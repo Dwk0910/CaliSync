@@ -82,7 +82,7 @@ public class DBCService {
             }
         } catch (IllegalArgumentException | JSONException e) { return e400; }
           catch (Exception e) {
-            CaliBack.LOGGER.error(e);
+            CaliBack.LOGGER.error("", e);
             return e500;
         }
     }

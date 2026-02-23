@@ -36,7 +36,7 @@ public record DBC (String dburl, String u_mid) {
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) u_mid = rs.getString("u_mid");
         } catch (SQLException e) {
-            CaliBack.LOGGER.error(e);
+            CaliBack.LOGGER.error("", e);
             System.exit(-1);
         }
 
@@ -51,7 +51,7 @@ public record DBC (String dburl, String u_mid) {
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) return DataUtils.getSchedules(rs);
         } catch (SQLException e) {
-            CaliBack.LOGGER.error(e);
+            CaliBack.LOGGER.error("", e);
             throw new RuntimeException();
         }
         return null;
@@ -82,7 +82,7 @@ public record DBC (String dburl, String u_mid) {
             ResultSet rs = pstmt.executeQuery();
             result = DataUtils.getDays(rs);
         } catch (SQLException | IllegalArgumentException e) {
-            CaliBack.LOGGER.error(e);
+            CaliBack.LOGGER.error("", e);
             throw new RuntimeException(e);
         }
 
@@ -124,7 +124,7 @@ public record DBC (String dburl, String u_mid) {
             rs = pstmt_count.executeQuery();
             if (rs.next()) obj.put("total_count", Integer.toString(rs.getInt("total_count")));
         } catch (SQLException e) {
-            CaliBack.LOGGER.error(e);
+            CaliBack.LOGGER.error("", e);
             throw new RuntimeException(e);
         }
 
@@ -196,7 +196,7 @@ public record DBC (String dburl, String u_mid) {
                     CaliBack.LOGGER.info("Updating data for {} has been succeed.", day.date().getDate(2));
                 }
             } catch (SQLException e) {
-                CaliBack.LOGGER.error(e);
+                CaliBack.LOGGER.error("", e);
                 throw new RuntimeException();
             }
         }
@@ -273,7 +273,7 @@ public record DBC (String dburl, String u_mid) {
 
             if (affectedRows > 0) CaliBack.LOGGER.info("Appending data has been succeed.");
         } catch (SQLException e) {
-            CaliBack.LOGGER.error(e);
+            CaliBack.LOGGER.error("", e);
             throw new RuntimeException();
         }
     }
@@ -303,7 +303,7 @@ public record DBC (String dburl, String u_mid) {
 
                     affectedRows = pstmt.executeUpdate();
                 } catch (SQLException e) {
-                    CaliBack.LOGGER.error(e);
+                    CaliBack.LOGGER.error("", e);
                     throw new RuntimeException(e);
                 }
             } else {
@@ -350,7 +350,7 @@ public record DBC (String dburl, String u_mid) {
 
                 affectedRows = pstmt.executeUpdate();
             } catch (SQLException e) {
-                CaliBack.LOGGER.error(e);
+                CaliBack.LOGGER.error("", e);
             }
 
             if (affectedRows > 0) CaliBack.LOGGER.info("Removing data has been succeed.");
@@ -377,7 +377,7 @@ public record DBC (String dburl, String u_mid) {
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) CaliBack.LOGGER.info("Schedules on {} have been removed.", date.getDate(2));
         } catch (SQLException e) {
-            CaliBack.LOGGER.error(e);
+            CaliBack.LOGGER.error("", e);
             throw new RuntimeException();
         }
     }
@@ -394,7 +394,7 @@ public record DBC (String dburl, String u_mid) {
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) CaliBack.LOGGER.info("Records on {} have been removed.", date.getDate(2));
         } catch (SQLException e) {
-            CaliBack.LOGGER.error(e);
+            CaliBack.LOGGER.error("", e);
             throw new RuntimeException();
         }
     }

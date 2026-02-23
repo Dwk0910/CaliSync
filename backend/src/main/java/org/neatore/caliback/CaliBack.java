@@ -27,6 +27,8 @@ public class CaliBack {
     public static Path database;
     public static DBC dbc;
 
+    public static String allowedEmail;
+
     public static void main(String[] args) {
         // Parse configuration
 
@@ -41,6 +43,7 @@ public class CaliBack {
 
             configurationObj = new JSONObject(sb.toString());
             database = Paths.get(configurationObj.getJSONObject("CaliBack").getString("database_path"));
+            allowedEmail = configurationObj.getJSONObject("CaliBack").getString("allowed_email");
         } catch (IOException | JSONException e) {
             LOGGER.fatal("Error while loading configuration file. Please check configuration file exists, or is valid.");
             LOGGER.fatal("Configuration file has to be named \"config.json\" and located at {}", Paths.get(System.getProperty("user.dir"), "data").toString());
