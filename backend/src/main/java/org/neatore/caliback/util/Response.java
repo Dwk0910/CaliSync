@@ -19,7 +19,7 @@ public class Response {
             response.put("requestId", data.getRequestId());
             session.sendMessage(new TextMessage(response.toString(), true));
         } catch (IOException e) {
-            CaliBack.LOGGER.error(e);
+            CaliBack.LOGGER.error("", e);
         }
     }
 }
