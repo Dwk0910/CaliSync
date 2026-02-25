@@ -58,6 +58,7 @@ export default function App() {
 
     // 정상 동작 관여
     const [authorized, setAuthorized] = useState<boolean | undefined>();
+    const [socketError, setSocketError] = useState<boolean>(false);
     const [loadingError, setLoadingError] = useState<boolean>(false);
     const [loadingSchedules, setLoadingSchedules] = useState<boolean>(true);
 
@@ -148,7 +149,7 @@ export default function App() {
                         'X-Client-Token': localStorage.getItem("calisync_token")
                     }
                 }
-            );
+            ).catch();
 
             // key: specialDays, schedules
             const responseData =
@@ -234,8 +235,11 @@ export default function App() {
 
             socket.onerror = (err) => {
                 // 에러 로깅 및 socket.onclose 유도
+                setSocketError(true);
                 console.error(err);
-                socket.close();
+
+                // 재연결 억제
+                socket.onclose = null;
             }
 
             socket.onclose = async () => {
@@ -468,10 +472,10 @@ export default function App() {
 
     // 비인증 시 단순히 가리는 게 아니라 아예 출력 자체가 안되어야 하므로 return문을 따로 작성
 
-    if (authorized == undefined) {
+    if (authorized == undefined || socketError) {
         return (
             <div className={"w-full h-screen flex items-center justify-center bg-neutral-700"}>
-                <span className={"font-suite text-white"}>클라이언트 인증 중입니다...</span>
+                <span className={"font-suite text-white"}>{!socketError ? "클라이언트 인증 중입니다..." : "서버와 통신하는 중 오류가 발생했습니다"}</span>
             </div>
         );
     } else if (!authorized) {
@@ -484,7 +488,7 @@ export default function App() {
                     <span className={"font-bold"}>Unauthorized</span>
                 </span>
                 <GoogleOAuthProvider clientId={import.meta.env.VITE_API_GOOGLEOAUTH_CLIENT_ID}>
-                    <LoginButtion backend={ backend }/>
+                    <LoginButtion backend={ backend } setAuthorized={ setAuthorized } fetchSchedules={ fetchSchedules }/>
                 </GoogleOAuthProvider>
             </div>
         );
@@ -519,7 +523,7 @@ export default function App() {
                             popup.open && "bg-black/70",
                             !popup.open && "pointer-events-none",
                         )}
-                        onPointerUp={() =>
+                        onPointerDown={() =>
                             setPopup((prev) => {
                                 return popup.allowBgClose ? {...prev, open: false} : prev;
                             })
@@ -535,7 +539,7 @@ export default function App() {
                                 "transition-all duration-200 ease-in-out",
                                 "pt-6 px-5",
                             )}
-                            onPointerUp={(event) => event.stopPropagation()}
+                            onPointerDown={(event) => event.stopPropagation()}
                         >
                             {popupConfig?.component}
                         </div>
