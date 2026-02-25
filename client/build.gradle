@@ -13,6 +13,20 @@ run {
     standardInput = System.in
 }
 
+jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    manifest {
+        attributes 'Main-Class': 'org.neatore.calisync.CaliSync'
+    }
+
+    from {
+        configurations.compileClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
+
 dependencies {
     implementation 'net.java.dev.jna:jna:5.18.1'
     implementation 'net.java.dev.jna:jna-platform:5.18.1'
