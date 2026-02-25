@@ -15,7 +15,7 @@ export default function LoginButtion({ backend }: { backend: string; }) {
     });
 
     return (
-        <button className={"font-suite text-white border border-neutral-500 p-2 scale-70"} onPointerDown={() => login()}>
+        <button className={"font-suite text-white border border-neutral-500 p-2 scale-70"} onPointerUp={() => login()}>
             <span className={"font-bold"}>Google 계정</span>
             <span className={"text-neutral-300"}>으로 인증하기</span>
         </button>

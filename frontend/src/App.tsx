@@ -311,7 +311,7 @@ export default function App() {
                             isToday && "bg-blue-300/20",
                             "flex flex-col",
                         )}
-                        onPointerDown={() => {
+                        onPointerUp={() => {
                             if (!loadingSchedules) {
                                 setCurrentDay(day);
                                 setPopup((prev) => ({
@@ -364,7 +364,7 @@ export default function App() {
         //     rd = 1;
         //     while (calendarContent_[w].length < 7) {
         //         calendarContent_[w].push(
-        //             <div key={`fill-${showingCalendar}-${rd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 pt-2 text-center text-neutral-700"} onPointerDown={() => {
+        //             <div key={`fill-${showingCalendar}-${rd}`} className={"flex-1 border-b border-neutral-700 h-20 p-1 pt-2 text-center text-neutral-700"} onPointerUp={() => {
         //                 setShowingCalendar((prev) => {
         //                     const nextDate = new Date(prev);
         //                     nextDate.setMonth(prev.getMonth() + 1);
@@ -519,7 +519,7 @@ export default function App() {
                             popup.open && "bg-black/70",
                             !popup.open && "pointer-events-none",
                         )}
-                        onPointerDown={() =>
+                        onPointerUp={() =>
                             setPopup((prev) => {
                                 return popup.allowBgClose ? {...prev, open: false} : prev;
                             })
@@ -535,7 +535,7 @@ export default function App() {
                                 "transition-all duration-200 ease-in-out",
                                 "pt-6 px-5",
                             )}
-                            onPointerDown={(event) => event.stopPropagation()}
+                            onPointerUp={(event) => event.stopPropagation()}
                         >
                             {popupConfig?.component}
                         </div>
@@ -550,14 +550,14 @@ export default function App() {
             {/*    "transition-colors duration-200 ease-in-out",*/}
             {/*    scheduleOpen && "bg-black/70",*/}
             {/*    !scheduleOpen && "pointer-events-none"*/}
-            {/*)} onPointerDown={() => setScheduleOpen(false)}>*/}
+            {/*)} onPointerUp={() => setScheduleOpen(false)}>*/}
             {/*    <div className={clsx(*/}
             {/*        "fixed w-screen h-150 bg-neutral-700",*/}
             {/*        "transition-all duration-300 ease-in-out",*/}
             {/*        "pt-6 px-6 relative",*/}
             {/*        "flex flex-col justify-between",*/}
             {/*        scheduleOpen ? "mb-0" : "-mb-150"*/}
-            {/*    )} onPointerDown={(event) => event.stopPropagation()}>*/}
+            {/*    )} onPointerUp={(event) => event.stopPropagation()}>*/}
             {/*        <div className={"flex flex-col font-suite text-white"}>*/}
             {/*            <span className={"mx-auto mb-3 text-white text-[1rem]"}>일정 수정</span>*/}
             {/*            <span className={"text-[1.5rem] text-gray-300"}>{ showingCalendar.getFullYear() }년</span>*/}
@@ -601,7 +601,7 @@ export default function App() {
             {/*                "flex justify-center items-center w-[50%] h-12 rounded-lg",*/}
             {/*                "transition-all duration-200 ease-in-out mb-10 border border-gray-600",*/}
             {/*                "bg-neutral-500"*/}
-            {/*            )} onPointerDown={() => {*/}
+            {/*            )} onPointerUp={() => {*/}
             {/*                setScheduleOpen(false);*/}
             {/*            }}>*/}
             {/*                <span className={"font-suite text-xl"}>취소</span>*/}
@@ -610,7 +610,7 @@ export default function App() {
             {/*                "flex justify-center items-center ml-5 w-[50%] h-12 rounded-lg",*/}
             {/*                "transition-all duration-200 ease-in-out mb-10",*/}
             {/*                daypopup_button_active ? "bg-green-600/90" : "bg-neutral-600")*/}
-            {/*            } onPointerDown={() => {*/}
+            {/*            } onPointerUp={() => {*/}
             {/*                if (daypopup_button_active) return;*/}
             {/*                setScheduleOpen(false);*/}
             {/*            }}>*/}
@@ -627,21 +627,21 @@ export default function App() {
                         className={
                             "w-40 h-10 flex items-center justify-center cursor-pointer"
                         }
-                        onPointerDown={() => window.location.assign(".")}
+                        onPointerUp={() => window.location.assign(".")}
                     >
                         <span className={"font-suite"}>Desktop Calendar</span>
                     </div>
-                    <MdMyLocation onPointerDown={() => setShowingCalendar(now)}/>
+                    <MdMyLocation onPointerUp={() => setShowingCalendar(now)}/>
                     <IoTerminalOutline className={"ml-5"}/>
                     <FaArrowRight
                         className={"ml-5"}
-                        onPointerDown={() => {
+                        onPointerUp={() => {
                             setPopup((prev) => ({...prev, open: true, content: "MoveTo"}));
                         }}
                     />
                     <RxReload
                         className={"ml-5 font-bold"}
-                        onPointerDown={async () => await fetchSchedules()}
+                        onPointerUp={async () => await fetchSchedules()}
                     />
                 </div>
                 <div
@@ -657,7 +657,7 @@ export default function App() {
                         className={
                             "flex mt-auto mr-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"
                         }
-                        onPointerDown={() => {
+                        onPointerUp={() => {
                             setShowingCalendar(
                                 new Date(
                                     showingCalendar.getFullYear(),
@@ -674,18 +674,18 @@ export default function App() {
                             "flex flex-col justify-end font-suite items-center h-15 mt-5"
                         }
                     >
-            <span className={"text-gray-300 w-20 text-center"}>
-              {monthInfo.currentYear}년
-            </span>
-                        <span className={"-mt-1 text-[2rem] font-bold w-20 text-center"}>
-              {monthInfo.currentMonth}월
-            </span>
+                        <span className={"text-gray-300 w-20 text-center"}>
+                          {monthInfo.currentYear}년
+                        </span>
+                                    <span className={"-mt-1 text-[2rem] font-bold w-20 text-center"}>
+                          {monthInfo.currentMonth}월
+                        </span>
                     </div>
                     <div
                         className={
                             "flex mt-auto ml-10 mb-2 items-center justify-center p-2 w-10 h-10 text-[1.5rem] bg-gray-500 rounded-full"
                         }
-                        onPointerDown={() => {
+                        onPointerUp={() => {
                             setShowingCalendar(
                                 new Date(
                                     showingCalendar.getFullYear(),
@@ -698,44 +698,44 @@ export default function App() {
                         <FaArrowRight/>
                     </div>
                 </div>
-                <div className={"flex flex-col mt-5 font-suite"}>
-                    <div
-                        className={clsx(
-                            "mb-1 flex items-center",
-                            "text-[1.1rem]",
-                            "transition-all duration-200",
-                            loadingError ? "opacity-100 -mt-2" : "opacity-0 -mt-7",
-                        )}
-                    >
-            <span
-                className={"ml-4 text-[1.2rem] mb-0.5 text-red-400 font-bold"}
-            >
-              <CiWarning/>
-            </span>
-                        <span className={"ml-2 text-red-400"}>
-              기념일 데이터 불러오기 실패
-            </span>
+                <div className={"w-full flex justify-center"}>
+                    <div className={"flex flex-col mt-5 font-suite w-full max-w-[320px]"}>
+                        <div
+                            className={clsx(
+                                "mb-1 flex items-center",
+                                "text-[1.1rem]",
+                                "transition-all duration-200",
+                                loadingError ? "opacity-100 -mt-2" : "opacity-0 -mt-7",
+                            )}
+                        >
+                        <span
+                            className={"ml-4 text-[1.2rem] mb-0.5 text-red-400 font-bold"}
+                        >
+                          <CiWarning/>
+                        </span>
+                            <span className={"ml-2 text-red-400"}>기념일 데이터 불러오기 실패</span>
+                        </div>
+                        <div
+                            className={
+                                "flex w-full border-b border-gray-400 pb-2 font-bold text-[1.2rem]"
+                            }
+                        >
+                            <span className={"flex-1 text-center text-red-400"}>일</span>
+                            <span className={"flex-1 text-center"}>월</span>
+                            <span className={"flex-1 text-center"}>화</span>
+                            <span className={"flex-1 text-center"}>수</span>
+                            <span className={"flex-1 text-center"}>목</span>
+                            <span className={"flex-1 text-center"}>금</span>
+                            <span className={"flex-1 text-center text-blue-600"}>토</span>
+                        </div>
+                        {calendarContent.map((item, idx) => {
+                            return (
+                                <div key={idx} className={"flex font-suite"}>
+                                    {item}
+                                </div>
+                            );
+                        })}
                     </div>
-                    <div
-                        className={
-                            "flex w-full border-b border-gray-400 pb-2 font-bold text-[1.2rem]"
-                        }
-                    >
-                        <span className={"flex-1 text-center text-red-400"}>일</span>
-                        <span className={"flex-1 text-center"}>월</span>
-                        <span className={"flex-1 text-center"}>화</span>
-                        <span className={"flex-1 text-center"}>수</span>
-                        <span className={"flex-1 text-center"}>목</span>
-                        <span className={"flex-1 text-center"}>금</span>
-                        <span className={"flex-1 text-center text-blue-600"}>토</span>
-                    </div>
-                    {calendarContent.map((item, idx) => {
-                        return (
-                            <div key={idx} className={"flex font-suite"}>
-                                {item}
-                            </div>
-                        );
-                    })}
                 </div>
             </div>
         </>

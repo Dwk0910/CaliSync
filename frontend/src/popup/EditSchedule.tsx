@@ -237,7 +237,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
             <div className="flex my-5">
                 <div
                     className="w-1/2 h-12 flex items-center justify-center rounded-lg bg-neutral-500 border border-gray-600"
-                    onPointerDown={onClose}
+                    onPointerUp={onClose}
                 >
                     취소
                 </div>
@@ -247,7 +247,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                         "transition-colors duration-300",
                         daypopup_button_active ? "bg-blue-500" : "bg-neutral-600"
                     )}
-                    onPointerDown={onSave}
+                    onPointerUp={onSave}
                 >
                     {
                         daypopup_loading ? (
@@ -316,13 +316,13 @@ const ScheduleItem = ({ itemId, schedules, setSchedules }: { itemId: string; sch
                 dragControls={ deleteItemDragControl }
                 className={"relative flex z-10 w-full items-center bg-neutral-800 border border-gray-600 rounded"}
             >
-                <div className={"text-[1.1rem] text-gray-400 mx-2"} onPointerDown={(e) => {
+                <div className={"text-[1.1rem] text-gray-400 mx-2"} onPointerUp={(e) => {
                     e.stopPropagation();
                     reorderItemDragControl.start(e);
                 }}>
                     <RxDragHandleDots2/>
                 </div>
-                <div className={"w-[90%] py-2 pr-4 touch-none wrap-break-word"} onPointerDown={(e) => deleteItemDragControl.start(e)}>
+                <div className={"w-[90%] py-2 pr-4 touch-none wrap-break-word"} onPointerUp={(e) => deleteItemDragControl.start(e)}>
                     <TextareaAutosize
                         value={item?.content}
                         spellCheck={false}
