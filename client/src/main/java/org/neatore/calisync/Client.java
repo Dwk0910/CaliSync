@@ -2,6 +2,7 @@ package org.neatore.calisync;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
 
 import org.neatore.calisync.packet.SignalPacket;
 import org.neatore.calisync.service.DBWatcher;
@@ -25,12 +26,13 @@ public class Client extends WebSocketClient {
             if (!this.isOpen()) {
                 CaliSync.LOGGER.warn("Socket closed. Trying to reconnect...");
                 this.reconnectBlocking();
+                if (!this.isOpen()) throw new WebsocketNotConnectedException();
             }
-
-            this.send(obj.toString());
-        } catch (InterruptedException e) {
+        } catch (InterruptedException | WebsocketNotConnectedException e) {
             CaliSync.LOGGER.fatal("Failed to reconnect to the server.", e);
         }
+
+        this.send(obj.toString());
     }
 
     private final Map<String, CompletableFuture<JSONObject>> pendingResponses = new HashMap<>();
@@ -80,8 +82,13 @@ public class Client extends WebSocketClient {
 
     @Override
     public void onClose(int i, String s, boolean b) {
+        if (s.contains("502 Bad Gateway")) {
+            this.onError(new Exception("%d %s %s".formatted(i, b, s)));
+            return;
+        }
+
         CaliSync.LOGGER.info("Connection closed.");
-        CaliSync.notifySystem.notify("서버와의 연결이 종료되었습니다.", "CaliSync 백엔드 서버와의 연결이 닫혔습니다. 다음 캘린더 실행 시에 자동으로 재연결됩니다.");
+        CaliSync.notifySystem.notify("서버와의 연결이 종료되었습니다.", "다음 캘린더 동기화 시에 재연결을 시도합니다.");
     }
 
     @Override
