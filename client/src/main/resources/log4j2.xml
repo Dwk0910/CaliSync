@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
 	<Properties>
-		<Property name="LOG_DIR">${env:APPDATA}/calisync</Property>
+		<Property name="LOG_DIR">${env:APPDATA}/CaliSync</Property>
 	</Properties>
 	
 	<Appenders>
