@@ -38,7 +38,7 @@ public class CaliSync {
         try {
             client.connectBlocking(10, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            CaliSync.LOGGER.fatal(e);
+            CaliSync.LOGGER.fatal("", e);
         }
 
         // Local DB Watch Service 생성

@@ -83,7 +83,7 @@ public class Client extends WebSocketClient {
 
     @Override
     public void onError(Exception e) {
-        CaliSync.LOGGER.error(e);
+        CaliSync.LOGGER.error("", e);
         System.exit(-1);
     }
 }

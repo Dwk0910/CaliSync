@@ -108,7 +108,7 @@ public class DBWatcher implements Runnable {
                 if (!key.reset()) break;
             }
         } catch (IOException | InterruptedException e) {
-            CaliSync.LOGGER.fatal(e);
+            CaliSync.LOGGER.fatal("", e);
         }
     }
 
@@ -291,7 +291,7 @@ public class DBWatcher implements Runnable {
                 ResultSet rs = pstmt.executeQuery();
                 if (rs.next()) clientLstMdate = rs.getString("last_modified");
             } catch (SQLException e) {
-                CaliSync.LOGGER.fatal(e);
+                CaliSync.LOGGER.fatal("", e);
                 System.exit(-1);
             }
 

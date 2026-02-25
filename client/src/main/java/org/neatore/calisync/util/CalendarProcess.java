@@ -33,7 +33,7 @@ public class CalendarProcess {
             }
             throw new Exception("Calendar Timed Out : Tried to start calendar 100 times. but Calendar didn't respond.");
         } catch (Exception e) {
-            CaliSync.LOGGER.error(e);
+            CaliSync.LOGGER.error("", e);
         }
     }
 
@@ -42,7 +42,7 @@ public class CalendarProcess {
             if (!isRunning()) return;
             new ProcessBuilder("taskkill", "/F", "/IM", process.getFileName().toString()).start().waitFor();
         } catch (Exception e) {
-            CaliSync.LOGGER.error(e);
+            CaliSync.LOGGER.error("", e);
         }
     }
 
