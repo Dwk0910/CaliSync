@@ -146,7 +146,7 @@ export default function App() {
                 `/webservice/getMonthInfo/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
                 {
                     headers: {
-                        'X-Client-Token': localStorage.getItem("calisync_token")
+                        'X-Client-Token': localStorage.getItem("calisync_token") || ""
                     }
                 }
             ).catch();

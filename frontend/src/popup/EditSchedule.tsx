@@ -87,7 +87,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                     bgColor: "",
                 }, {
                     headers: {
-                        'X-Client-Token': localStorage.getItem("calisync_token"),
+                        'X-Client-Token': localStorage.getItem("calisync_token") || "",
                         'X-Client-ID': sessionId
                     }
                 });
