@@ -45,6 +45,7 @@ export default function MoveTo({ date, setDate, close }: { date: Date, setDate: 
                     <div className={clsx(
                         "flex justify-center items-center w-full h-12 rounded-lg",
                         "transition-all duration-200 ease-in-out",
+                        !disabled && "active:scale-105",
                         disabled ? "bg-neutral-600" : "bg-blue-500")
                     } onPointerUp={() => {
                         if (disabled) return;

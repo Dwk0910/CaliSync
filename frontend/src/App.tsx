@@ -543,85 +543,9 @@ export default function App() {
                 );
             })()}
 
-            {/*Schedule Setting Popup (Day popup)*/}
-            {/*<div className={clsx(*/}
-            {/*    "fixed w-screen h-screen",*/}
-            {/*    "flex flex-col justify-end",*/}
-            {/*    "transition-colors duration-200 ease-in-out",*/}
-            {/*    scheduleOpen && "bg-black/70",*/}
-            {/*    !scheduleOpen && "pointer-events-none"*/}
-            {/*)} onPointerUp={() => setScheduleOpen(false)}>*/}
-            {/*    <div className={clsx(*/}
-            {/*        "fixed w-screen h-150 bg-neutral-700",*/}
-            {/*        "transition-all duration-300 ease-in-out",*/}
-            {/*        "pt-6 px-6 relative",*/}
-            {/*        "flex flex-col justify-between",*/}
-            {/*        scheduleOpen ? "mb-0" : "-mb-150"*/}
-            {/*    )} onPointerUp={(event) => event.stopPropagation()}>*/}
-            {/*        <div className={"flex flex-col font-suite text-white"}>*/}
-            {/*            <span className={"mx-auto mb-3 text-white text-[1rem]"}>일정 수정</span>*/}
-            {/*            <span className={"text-[1.5rem] text-gray-300"}>{ showingCalendar.getFullYear() }년</span>*/}
-            {/*            <div>*/}
-            {/*                <span className={"text-[2rem]"}>*/}
-            {/*                    <span>{ showingCalendar.getMonth() + 1 }월</span>*/}
-            {/*                    <span className={"ml-2"}>{ currentDay }일</span>*/}
-            {/*                </span>*/}
-            {/*                {(() => {*/}
-            {/*                    const date = new Date(showingCalendar.getFullYear(), showingCalendar.getMonth(), currentDay);*/}
-            {/*                    const lunar = Lunar.fromDate(date);*/}
-            {/*                    return (*/}
-            {/*                        <span className={"ml-3 text-gray-400"}>{ getDay(date, currentDayInf.isHoliday) }<span className={"mx-2"}>·</span>(음) { lunar.getMonth() }월 { lunar.getDay() }일</span>*/}
-            {/*                    )*/}
-            {/*                })()}*/}
-            {/*            </div>*/}
-            {/*            <div className={"flex gap-2 flex-wrap mt-1"}>*/}
-            {/*                {now.getFullYear() == showingCalendar.getFullYear() && now.getMonth() == showingCalendar.getMonth() && now.getDate() == currentDay && (*/}
-            {/*                    <div className={"inline-block px-2 h-5 text[0.9rem] rounded-[5px] bg-blue-900 text-white font-bold"}>*/}
-            {/*                        오늘*/}
-            {/*                    </div>*/}
-            {/*                )}*/}
-            {/*                {currentDayInf.specdays.map((i, idx) => {*/}
-            {/*                    return (*/}
-            {/*                        <div key={`specialday-${idx}`} className={*/}
-            {/*                            clsx(*/}
-            {/*                            "inline-block px-2 h-5 text-[0.9rem] rounded-[5px]",*/}
-            {/*                                i.type === "holi" && "bg-red-700 text-red-100 font-bold",*/}
-            {/*                                i.type === "rest" && "bg-red-500 font-bold",*/}
-            {/*                                i.type === "anni" && "bg-purple-400 text-black",*/}
-            {/*                                i.type === "tfst" && "bg-[#F9A825]",*/}
-            {/*                                i.type === "other" && "bg-gray-400 text-black"*/}
-            {/*                            )*/}
-            {/*                        }>{i.name}</div>*/}
-            {/*                    );*/}
-            {/*                })}*/}
-            {/*            </div>*/}
-            {/*        </div>*/}
-            {/*        <div className={"flex"}>*/}
-            {/*            <div className={clsx(*/}
-            {/*                "flex justify-center items-center w-[50%] h-12 rounded-lg",*/}
-            {/*                "transition-all duration-200 ease-in-out mb-10 border border-gray-600",*/}
-            {/*                "bg-neutral-500"*/}
-            {/*            )} onPointerUp={() => {*/}
-            {/*                setScheduleOpen(false);*/}
-            {/*            }}>*/}
-            {/*                <span className={"font-suite text-xl"}>취소</span>*/}
-            {/*            </div>*/}
-            {/*            <div className={clsx(*/}
-            {/*                "flex justify-center items-center ml-5 w-[50%] h-12 rounded-lg",*/}
-            {/*                "transition-all duration-200 ease-in-out mb-10",*/}
-            {/*                daypopup_button_active ? "bg-green-600/90" : "bg-neutral-600")*/}
-            {/*            } onPointerUp={() => {*/}
-            {/*                if (daypopup_button_active) return;*/}
-            {/*                setScheduleOpen(false);*/}
-            {/*            }}>*/}
-            {/*                <span className={"font-suite text-xl"}>저장</span>*/}
-            {/*            </div>*/}
-            {/*        </div>*/}
-            {/*    </div>*/}
-            {/*</div>*/}
-
             {/*Calendar*/}
-            <div className={"w-screen h-screen bg-neutral-800 text-white"}>
+            <style>{`body { background-color: #262626; }`}</style>
+            <div className={"w-screen h-screen text-white"}>
                 <div className={"flex items-center w-full bg-neutral-700"}>
                     <div
                         className={

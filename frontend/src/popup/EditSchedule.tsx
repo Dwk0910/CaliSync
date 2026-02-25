@@ -236,7 +236,10 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
 
             <div className="flex my-5">
                 <div
-                    className="w-1/2 h-12 flex items-center justify-center rounded-lg bg-neutral-500 border border-gray-600"
+                    className={clsx(
+                        "w-1/2 h-12 flex items-center justify-center rounded-lg bg-neutral-500 border border-gray-600",
+                        "transition-transform duration-200 active:scale-105"
+                    )}
                     onPointerUp={onClose}
                 >
                     취소
@@ -244,7 +247,8 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                 <div
                     className={clsx(
                         "w-1/2 h-12 ml-5 flex items-center justify-center rounded-lg",
-                        "transition-colors duration-300",
+                        "transition-all duration-200",
+                        daypopup_button_active && "active:scale-105",
                         daypopup_button_active ? "bg-blue-500" : "bg-neutral-600"
                     )}
                     onPointerUp={onSave}
