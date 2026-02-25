@@ -79,7 +79,10 @@ public class Client extends WebSocketClient {
     public void onOpen(ServerHandshake serverHandshake) { CaliSync.LOGGER.info("Connection established."); }
 
     @Override
-    public void onClose(int i, String s, boolean b) { CaliSync.LOGGER.info("Connection closed."); }
+    public void onClose(int i, String s, boolean b) {
+        CaliSync.LOGGER.info("Connection closed.");
+        CaliSync.notifySystem.notify("서버와의 연결이 종료되었습니다.", "CaliSync 백엔드 서버와의 연결이 닫혔습니다. 다음 캘린더 실행 시에 자동으로 재연결됩니다.");
+    }
 
     @Override
     public void onError(Exception e) {
