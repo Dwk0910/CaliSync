@@ -2,7 +2,10 @@ package org.neatore.calisync.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Objects;
+import java.io.InputStream;
+
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 import com.sun.jna.Native;
 import com.sun.jna.WString;
@@ -12,13 +15,18 @@ import com.sun.jna.win32.StdCallLibrary;
 import org.neatore.calisync.CaliSync;
 
 public class NotifySystem {
-    private final String iconPath;
+    private final File icon;
 
     public NotifySystem() {
-        // 맨 앞의 슬래시(/) 제거, 모든 슬래시를 File.separator(범OS 구분자)로 변경
-        this.iconPath = Objects.requireNonNull(CaliSync.class.getResource("/icon.png")).getFile()
-                .substring(1)
-                .replace("/", File.separator);
+        File icon = new File(System.getProperty("java.io.tmpdir"), "calisync_icon.png");
+        try (InputStream is = CaliSync.class.getResourceAsStream("/icon.png")) {
+            if (is == null) throw new Exception();
+            Files.copy(is, icon.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            CaliSync.LOGGER.error("[NotifySystem] Failed to load icon resource.");
+        }
+
+        this.icon = icon;
         CaliSync.LOGGER.info("[NotifySystem] Registration completed.");
     }
 
@@ -39,7 +47,7 @@ public class NotifySystem {
                 "$textNodes.Item(1).AppendChild($template.CreateTextNode($msg)) | Out-Null; " +
                 "$toast = [Windows.UI.Notifications.ToastNotification]::new($template); " +
                 "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('CaliSync').Show($toast);",
-            title, description, iconPath);
+            title, description, icon.getAbsolutePath());
 
             new ProcessBuilder("powershell", "-ExecutionPolicy", "Bypass", "-Command", script).start();
         } catch (IOException e) {
