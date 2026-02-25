@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
+	<Properties>
+		<Property name="LOG_DIR">${env:APPDATA}/calisync</Property>
+	</Properties>
+	
 	<Appenders>
 		<Console name="Console" target="SYSTEM_OUT">
 			<PatternLayout pattern="[%d{HH:mm:ss}] [%t/%-level]: %msg%n"/>
 		</Console>
+		<File name="FileAppender" fileName="${LOG_DIR}/client.log" append="false">
+			<PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level: %msg%n"/>
+		</File>
 	</Appenders>
+	
 	<Loggers>
 		<Root level="info">
 			<AppenderRef ref="Console"/>
+			<AppenderRef ref="FileAppender"/>
 		</Root>
 	</Loggers>
 </Configuration>
