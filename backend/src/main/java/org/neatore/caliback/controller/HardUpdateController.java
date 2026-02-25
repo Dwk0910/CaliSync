@@ -35,7 +35,7 @@ import static org.neatore.caliback.CaliBack.LOGGER;
 import static org.neatore.caliback.CaliBack.dbc;
 
 @RestController
-@RequestMapping("/calisync")
+@RequestMapping("/caliclient")
 public class HardUpdateController {
     public static final Map<String, Long> VALID_KEYS = new ConcurrentHashMap<>();
 

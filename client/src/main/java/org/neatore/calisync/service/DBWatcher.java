@@ -219,7 +219,7 @@ public class DBWatcher implements Runnable {
 
         try {
             LOGGER.info("HARD UPDATE : Downloading hard update SQL data from server...");
-            URL url = new URI("http://" + CaliSync.serverurl + "/hard-update/" + key).toURL();
+            URL url = new URI("https://" + CaliSync.serverurl + "/caliclient/hard-update/" + key).toURL();
 
             // 서버로부터 파일 다운로드 및 저장
             HttpURLConnection httpconn = (HttpURLConnection) url.openConnection();

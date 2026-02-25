@@ -24,7 +24,7 @@ public class CaliSync {
     public static final Path dbPath = Path.of(dbDir.toString(), "calendar.db");
 
     public static final String dburl = "jdbc:sqlite:" + dbPath;
-    public static final String serverurl = "localhost:8080/calisync";
+    public static final String serverurl = "neatorebackend.kro.kr/calisync";
 
     public static Logger LOGGER = LogManager.getLogger(CaliSync.class);
     public static NotifySystem notifySystem = new NotifySystem();
@@ -39,7 +39,7 @@ public class CaliSync {
         CalendarProcess.refresh();
 
         LOGGER.info("Opening connection to the CaliSync server...");
-        Client client = new Client(new URI("ws://" + serverurl));
+        Client client = new Client(new URI("wss://" + serverurl + "/caliclient"));
         client.connectBlocking(10, TimeUnit.SECONDS);
 
         // Local DB Watch Service 생성
