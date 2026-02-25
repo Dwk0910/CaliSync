@@ -290,7 +290,7 @@ const ScheduleItem = ({ itemId, schedules, setSchedules }: { itemId: string; sch
             transition={{ duration: 0.2 }}
             className="relative mb-2 list-none touch-none overflow-hidden shrink-0"
         >
-            <div className={"absolute flex justify-end items-center pr-2 z-0 inset-0 bg-red-400 rounded my-0.5 left-10"}>
+            <div className={"absolute flex justify-end items-center pr-2 z-0 inset-0 bg-red-400 rounded m-0.5 left-10"}>
                 <RiDeleteBin6Line />
             </div>
             <motion.div
@@ -320,13 +320,13 @@ const ScheduleItem = ({ itemId, schedules, setSchedules }: { itemId: string; sch
                 dragControls={ deleteItemDragControl }
                 className={"relative flex z-10 w-full items-center bg-neutral-800 border border-gray-600 rounded"}
             >
-                <div className={"text-[1.1rem] text-gray-400 mx-2"} onPointerUp={(e) => {
+                <div className={"text-[1.1rem] text-gray-400 mx-2"} onPointerDown={(e) => {
                     e.stopPropagation();
                     reorderItemDragControl.start(e);
                 }}>
                     <RxDragHandleDots2/>
                 </div>
-                <div className={"w-[90%] py-2 pr-4 touch-none wrap-break-word"} onPointerUp={(e) => deleteItemDragControl.start(e)}>
+                <div className={"w-[90%] py-2 pr-4 touch-none wrap-break-word"} onPointerDown={(e) => deleteItemDragControl.start(e)}>
                     <TextareaAutosize
                         value={item?.content}
                         spellCheck={false}
