@@ -21,7 +21,7 @@ import org.json.JSONException;
 public class Client extends WebSocketClient {
     public Client(URI serverUri) { super(serverUri); }
 
-    public void sendSignal(SignalPacket obj) {
+    public void validateAndReconnect() {
         try {
             if (!this.isOpen()) {
                 CaliSync.LOGGER.warn("Socket closed. Trying to reconnect...");
@@ -29,9 +29,12 @@ public class Client extends WebSocketClient {
                 if (!this.isOpen()) throw new WebsocketNotConnectedException();
             }
         } catch (InterruptedException | WebsocketNotConnectedException e) {
-            CaliSync.LOGGER.fatal("Failed to reconnect to the server.", e);
+            this.onError(e);
         }
+    }
 
+    public void sendSignal(SignalPacket obj) {
+        validateAndReconnect();
         this.send(obj.toString());
     }
 
@@ -87,8 +90,10 @@ public class Client extends WebSocketClient {
             return;
         }
 
+        new Thread(this::validateAndReconnect).start();
+
         CaliSync.LOGGER.info("Connection closed.");
-        CaliSync.notifySystem.notify("서버와의 연결이 종료되었습니다.", "다음 캘린더 동기화 시에 재연결을 시도합니다.");
+        CaliSync.notifySystem.notify("서버와의 연결이 종료되었습니다.", "백엔드 서버와 재접속을 시도하는 중입니다.");
     }
 
     @Override
