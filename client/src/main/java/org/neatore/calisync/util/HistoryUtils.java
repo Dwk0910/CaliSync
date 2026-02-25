@@ -29,7 +29,7 @@ public final class HistoryUtils {
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) return HistoryUtils.decode(rs.getString("it_history"));
         } catch (SQLException e) {
-            CaliSync.LOGGER.error(e);
+            CaliSync.LOGGER.error("", e);
         }
         return null;
     }

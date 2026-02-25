@@ -23,7 +23,7 @@ public class Config implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new ClientHandler(autoUpdateService, dbcService), "/calisync").setAllowedOrigins("*");
+        registry.addHandler(new ClientHandler(autoUpdateService, dbcService), "/caliclient").setAllowedOrigins("*");
         registry.addHandler(new WebServiceHandler(autoUpdateService), "/caliweb").setAllowedOrigins("*");
     }
 }

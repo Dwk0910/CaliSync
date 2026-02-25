@@ -26,7 +26,7 @@ export default function MoveTo({ date, setDate, close }: { date: Date, setDate: 
     return (
         <div className={"w-full h-full text-white flex flex-col"}>
             <div className={"absolute w-15 h-15 right-0 text-[2.5rem] text-white"}>
-                <IoClose onPointerDown={() => close()}/>
+                <IoClose onPointerUp={() => close()}/>
             </div>
             <span className={"text-3xl font-suite font-bold"}>이동</span>
             <div className={"flex flex-col w-full h-full justify-between"}>
@@ -45,8 +45,9 @@ export default function MoveTo({ date, setDate, close }: { date: Date, setDate: 
                     <div className={clsx(
                         "flex justify-center items-center w-full h-12 rounded-lg",
                         "transition-all duration-200 ease-in-out",
+                        !disabled && "active:scale-105",
                         disabled ? "bg-neutral-600" : "bg-blue-500")
-                    } onPointerDown={() => {
+                    } onPointerUp={() => {
                         if (disabled) return;
                         setDate(new Date(year, month));
                         close();

@@ -236,18 +236,22 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
 
             <div className="flex my-5">
                 <div
-                    className="w-1/2 h-12 flex items-center justify-center rounded-lg bg-neutral-500 border border-gray-600"
-                    onPointerDown={onClose}
+                    className={clsx(
+                        "w-1/2 h-12 flex items-center justify-center rounded-lg bg-neutral-500 border border-gray-600",
+                        "transition-transform duration-200 active:scale-105"
+                    )}
+                    onPointerUp={onClose}
                 >
                     취소
                 </div>
                 <div
                     className={clsx(
                         "w-1/2 h-12 ml-5 flex items-center justify-center rounded-lg",
-                        "transition-colors duration-300",
+                        "transition-all duration-200",
+                        daypopup_button_active && "active:scale-105",
                         daypopup_button_active ? "bg-blue-500" : "bg-neutral-600"
                     )}
-                    onPointerDown={onSave}
+                    onPointerUp={onSave}
                 >
                     {
                         daypopup_loading ? (
@@ -286,7 +290,7 @@ const ScheduleItem = ({ itemId, schedules, setSchedules }: { itemId: string; sch
             transition={{ duration: 0.2 }}
             className="relative mb-2 list-none touch-none overflow-hidden shrink-0"
         >
-            <div className={"absolute flex justify-end items-center pr-2 z-0 inset-0 bg-red-400 rounded my-0.5 left-10"}>
+            <div className={"absolute flex justify-end items-center pr-2 z-0 inset-0 bg-red-400 rounded m-0.5 left-10"}>
                 <RiDeleteBin6Line />
             </div>
             <motion.div
