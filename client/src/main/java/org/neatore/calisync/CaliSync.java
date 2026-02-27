@@ -24,7 +24,8 @@ public class CaliSync {
     public static final Path dbPath = Path.of(dbDir.toString(), "calendar.db");
 
     public static final String dburl = "jdbc:sqlite:" + dbPath;
-    public static final String serverurl = "neatorebackend.kro.kr/calisync";
+//    public static final String serverurl = "neatorebackend.kro.kr/calisync";
+    public static final String serverurl = "localhost:8080/calisync";
 
     public static Logger LOGGER = LogManager.getLogger(CaliSync.class);
     public static NotifySystem notifySystem = new NotifySystem();
@@ -47,14 +48,11 @@ public class CaliSync {
         new Thread(new DBWatcher(client)).start();
     }
 
-    public static void connectionError(Throwable e) {
+    public static int connectionError(Throwable e) {
         CaliSync.LOGGER.fatal("", e);
 
         StringBuilder trace = new StringBuilder();
         Arrays.stream(e.getStackTrace()).forEach(stackTraceElement -> trace.append("        at ").append(stackTraceElement.toString()).append("\n"));
-        notifySystem.openErrorWindow("[CaliSync] 서버와의 연결에 실패했습니다.", e + "\n" + trace);
-
-        CalendarProcess.shutdown();
-        System.exit(-1);
+        return notifySystem.openErrorWindow("[CaliSync] 서버와의 연결에 실패했습니다.", e + "\n" + trace);
     }
 }
