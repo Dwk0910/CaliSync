@@ -2,10 +2,11 @@ package org.neatore.calisync;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
-import org.java_websocket.exceptions.WebsocketNotConnectedException;
 
 import org.neatore.calisync.packet.SignalPacket;
 import org.neatore.calisync.service.DBWatcher;
+import org.neatore.calisync.util.CalendarProcess;
+import org.neatore.calisync.util.NotifySystem;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,15 +27,14 @@ public class Client extends WebSocketClient {
             if (!this.isOpen()) {
                 CaliSync.LOGGER.warn("Socket closed. Trying to reconnect...");
                 this.reconnectBlocking();
-                if (!this.isOpen()) throw new WebsocketNotConnectedException();
             }
-        } catch (InterruptedException | WebsocketNotConnectedException e) {
-            this.onError(e);
+        } catch (InterruptedException e) {
+            CaliSync.LOGGER.fatal("", e);
+            System.exit(-1);
         }
     }
 
     public void sendSignal(SignalPacket obj) {
-        validateAndReconnect();
         this.send(obj.toString());
     }
 
@@ -98,6 +98,10 @@ public class Client extends WebSocketClient {
 
     @Override
     public void onError(Exception e) {
-        CaliSync.connectionError(e);
+        if (CaliSync.connectionError(e) == NotifySystem.CUser32.RTN_RETRY) new Thread(this::validateAndReconnect).start();
+        else {
+            CalendarProcess.shutdown();
+            System.exit(-1);
+        }
     }
 }
