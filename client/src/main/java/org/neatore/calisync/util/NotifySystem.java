@@ -15,6 +15,23 @@ import com.sun.jna.win32.StdCallLibrary;
 import org.neatore.calisync.CaliSync;
 
 public class NotifySystem {
+    public interface CUser32 extends StdCallLibrary {
+        int RTN_OK = 1;
+        int RTN_CANCEL = 2;
+        int RTN_RETRY = 4;
+        int RTN_TRYAGAIN = 10;
+
+        int ICO_ERROR = 0x00000010;
+        int ICO_WARN  = 0x00000030;
+
+        int BTN_OK = 0x00000000; // 확인
+        int BTN_OK_CANCEL = 0x00000001; // 확인, 취소
+        int BTN_RETRY_CANCEL = 0x00000005; // 다시 시도, 취소
+
+        CUser32 INSTANCE = Native.load("user32", CUser32.class);
+        int MessageBoxW(WinDef.HWND hWnd, WString IpText, WString IpCaption, int uType);
+    }
+
     private final File icon;
 
     public NotifySystem() {
@@ -30,8 +47,8 @@ public class NotifySystem {
         CaliSync.LOGGER.info("[NotifySystem] Registration completed.");
     }
 
-    public void openErrorWindow(String title, String description) {
-        CUser32.INSTANCE.MessageBoxW(null, new WString(description), new WString(title), 0x0000010);
+    public int openErrorWindow(String title, String description) {
+        return CUser32.INSTANCE.MessageBoxW(null, new WString(description), new WString(title), CUser32.ICO_ERROR | CUser32.BTN_RETRY_CANCEL);
     }
 
     public void notify(String title, String description) {
@@ -56,7 +73,3 @@ public class NotifySystem {
     }
 }
 
-interface CUser32 extends StdCallLibrary {
-    CUser32 INSTANCE = Native.load("user32", CUser32.class);
-    void MessageBoxW(WinDef.HWND hWnd, WString IpText, WString IpCaption, int uType);
-}
