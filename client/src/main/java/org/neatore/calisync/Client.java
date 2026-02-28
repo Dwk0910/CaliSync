@@ -22,15 +22,18 @@ import org.json.JSONException;
 public class Client extends WebSocketClient {
     public Client(URI serverUri) { super(serverUri); }
 
-    public void validateAndReconnect() {
-        try {
-            if (!this.isOpen()) {
-                CaliSync.LOGGER.warn("Socket closed. Trying to reconnect...");
-                this.reconnectBlocking();
-            }
-        } catch (InterruptedException e) {
-            CaliSync.LOGGER.fatal("", e);
-            System.exit(-1);
+    public void validateAndReconnectAsync() {
+        if (!this.isOpen()) {
+            new Thread(() -> {
+                try {
+                    CaliSync.LOGGER.warn("Socket closed. Reconnecting in 3s...");
+                    Thread.sleep(3000);
+                    this.reconnectBlocking();
+                } catch (InterruptedException e) {
+                    CaliSync.LOGGER.fatal("", e);
+                    System.exit(-1);
+                }
+            }).start();
         }
     }
 
@@ -90,7 +93,7 @@ public class Client extends WebSocketClient {
             return;
         }
 
-        new Thread(this::validateAndReconnect).start();
+        this.validateAndReconnectAsync();
 
         CaliSync.LOGGER.info("Connection closed.");
         CaliSync.notifySystem.notify("서버와의 연결이 종료되었습니다.", "백엔드 서버와 재접속을 시도하는 중입니다.");
@@ -98,7 +101,7 @@ public class Client extends WebSocketClient {
 
     @Override
     public void onError(Exception e) {
-        if (CaliSync.connectionError(e) == NotifySystem.CUser32.RTN_RETRY) new Thread(this::validateAndReconnect).start();
+        if (CaliSync.connectionError(e) == NotifySystem.CUser32.RTN_RETRY) this.validateAndReconnectAsync();
         else {
             CalendarProcess.shutdown();
             System.exit(-1);
