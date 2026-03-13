@@ -1,0 +1,9 @@
+spring:
+  ai:
+    mcp:
+      server:
+        name: "Calisync MCP Server"
+        version: "1.0.0"
+        protocol: SSE
+        sse-endpoint: "/calimcp/sse"
+        sse-message-endpoint: "/calimcp/message"

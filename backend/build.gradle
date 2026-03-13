@@ -12,10 +12,25 @@ application {
     mainClass = "org.neatore.caliback.CaliBack"
 }
 
+ext {
+    springAiVersion = "2.0.0-M2"
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:$springAiVersion"
+    }
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.ai:spring-ai-starter-mcp-server'
+    implementation 'org.springframework.ai:spring-ai-starter-mcp-server-webmvc'
 
     implementation 'com.google.api-client:google-api-client:2.9.0'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
 }
 
