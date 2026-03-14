@@ -8,7 +8,11 @@ spring:
         sse-endpoint: "/calimcp/sse"
         sse-message-endpoint: "/calimcp/message"
 
+
 logging.level:
   org.springframework.ai.mcp: ERROR
   org.springframework.support.PostProcessorRegistrationDelegate$BeanPostProcessorCheckor: ERROR
   io.modelcontextprotocol.server: ERROR
+
+server:
+  forward-headers-strategy: native
