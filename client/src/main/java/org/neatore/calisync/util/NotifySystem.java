@@ -47,8 +47,12 @@ public class NotifySystem {
         CaliSync.LOGGER.info("[NotifySystem] Registration completed.");
     }
 
-    public int openErrorWindow(String title, String description) {
+    public int openErrorWindowRetry(String title, String description) {
         return CUser32.INSTANCE.MessageBoxW(null, new WString(description), new WString(title), CUser32.ICO_ERROR | CUser32.BTN_RETRY_CANCEL);
+    }
+
+    public void openErrorWindow(String title, String description) {
+        CUser32.INSTANCE.MessageBoxW(null, new WString(description), new WString(title), CUser32.ICO_ERROR);
     }
 
     public void notify(String title, String description) {
