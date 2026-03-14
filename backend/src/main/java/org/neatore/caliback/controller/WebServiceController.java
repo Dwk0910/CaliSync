@@ -84,7 +84,7 @@ public class WebServiceController {
     }
 
     @GetMapping("/getMonthInfo/{year}/{month}")
-    public ResponseEntity<String> getSpecialDays(@RequestHeader("X-Client-Token") String sessionToken, @PathVariable String year, @PathVariable String month) {
+    public ResponseEntity<String> getMonthInfo(@RequestHeader("X-Client-Token") String sessionToken, @PathVariable String year, @PathVariable String month) {
         if (!uvs.verify(sessionToken)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
 
         JSONObject result = new JSONObject();
