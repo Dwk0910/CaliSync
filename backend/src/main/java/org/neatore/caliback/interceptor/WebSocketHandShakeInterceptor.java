@@ -1,4 +1,4 @@
-package org.neatore.caliback;
+package org.neatore.caliback.interceptor;
 
 import lombok.RequiredArgsConstructor;
 

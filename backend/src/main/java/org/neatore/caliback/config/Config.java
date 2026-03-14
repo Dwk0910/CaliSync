@@ -1,8 +1,9 @@
-package org.neatore.caliback;
+package org.neatore.caliback.config;
 
 import lombok.RequiredArgsConstructor;
 import org.neatore.caliback.handler.ClientHandler;
 import org.neatore.caliback.handler.WebServiceHandler;
+import org.neatore.caliback.interceptor.WebSocketHandShakeInterceptor;
 import org.neatore.caliback.services.AutoUpdateService;
 import org.neatore.caliback.services.DBCService;
 
