@@ -40,7 +40,8 @@ public class CaliSync {
         CalendarProcess.refresh();
 
         LOGGER.info("Opening connection to the CaliSync server...");
-        Client client = new Client(new URI("ws://" + ((Arrays.stream(args).toList().contains("-LOCALTEST")) ? serverurl_local : serverurl) + "/caliclient"));
+        boolean localtest = Arrays.stream(args).toList().contains("-LOCALTEST");
+        Client client = new Client(new URI(((localtest) ? "ws://" : "wss://") + ((localtest) ? serverurl_local : serverurl) + "/caliclient"));
 
         client.connectBlocking(10, TimeUnit.SECONDS);
 
