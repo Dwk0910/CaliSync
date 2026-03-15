@@ -24,6 +24,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -34,6 +35,8 @@ public class MCPAuthorizationController {
     private final UserVerifyService uvs;
     private final AuthorizationService authorizationService;
 
+    private static final String oauth_client_id = System.getenv("GOOGLEOAUTH_CLIENT_ID");
+
     private String getRequestURL(HttpServletRequest request) {
         String uri = request.getRequestURI();
         String url = request.getRequestURL().toString().replace(uri, "");
@@ -43,19 +46,43 @@ public class MCPAuthorizationController {
     }
 
     @GetMapping("/authorize")
-    public RedirectView authorize(HttpServletRequest request, @RequestParam String client_id, @RequestParam String redirect_uri, @RequestParam String state) {
+    public RedirectView authorize(HttpServletRequest request, @RequestParam String redirect_uri, @RequestParam String state) {
         HttpSession session = request.getSession();
         session.setAttribute("mcp_redirect_uri_n", getRequestURL(request) + "/authorize/next");
         session.setAttribute("mcp_redirect_uri_f", redirect_uri);
         session.setAttribute("mcp_state", state);
 
         return new RedirectView("https://accounts.google.com/o/oauth2/v2/auth" +
-                "?client_id=" + client_id
+                "?client_id=" + oauth_client_id
                 + "&redirect_uri=" + getRequestURL(request) + "/authorize/next"
                 + "&response_type=code"
                 + "&scope=email"
                 + "&state=" + state
         );
+    }
+
+    @GetMapping("/authorize/manual")
+    public ResponseEntity<String> authorizeManual(HttpServletRequest request, @RequestParam(required = false) String code, @RequestParam(required = false) String state) {
+        HttpSession session = request.getSession();
+
+        if (code == null) {
+            // Step 1. 사용자를 Google OAuth2 서비스 페이지로 이동
+            String state_ = UUID.randomUUID().toString();
+            String redirect_uri = getRequestURL(request) + "/authorize/manual";
+            session.setAttribute("mcp_state", state_);
+            session.setAttribute("mcp_redirect_uri_n", redirect_uri);
+
+            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(
+                    "https://accounts.google.com/o/oauth2/v2/auth?client_id=" + oauth_client_id
+                    + "&redirect_uri=" + redirect_uri
+                    + "&response_type=code"
+                    + "&scope=email"
+                    + "&state=" + state_
+            )).build();
+        } else if (state != null && session.getAttribute("mcp_state").equals(state) && authorizationService.verify(code, session.getAttribute("mcp_redirect_uri_n").toString())) {
+            // Step 2. 받은 authorization code를 통해 사용자 인증
+            return ResponseEntity.ok("User verified. Generated session ID : " + uvs.addSession());
+        } else return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @GetMapping("/authorize/next")
