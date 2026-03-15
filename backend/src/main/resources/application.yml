@@ -1,4 +1,5 @@
 spring:
+  mvc.async.request-timeout: 86400000
   ai:
     mcp:
       server:
@@ -11,8 +12,12 @@ spring:
 
 logging.level:
   org.springframework.ai.mcp: ERROR
+  io.modelcontextprotocol: ERROR
   org.springframework.support.PostProcessorRegistrationDelegate$BeanPostProcessorCheckor: ERROR
-  io.modelcontextprotocol.server: ERROR
 
 server:
-  forward-headers-strategy: native
+  forward-headers-strategy: framework
+  servlet.session.cookie:
+    secure: true
+    same-site: none
+  tomcat.connection-timeout: 86400000
