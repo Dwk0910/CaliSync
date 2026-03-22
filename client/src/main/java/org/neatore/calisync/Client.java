@@ -20,7 +20,7 @@ import org.json.JSONObject;
 import org.json.JSONException;
 
 public class Client extends WebSocketClient {
-    public Client(URI serverUri) { super(serverUri); }
+    public Client(URI serverUri) { super(serverUri, Map.of("X-Client-Secret", System.getenv("CALISYNC_CLIENT_SECRET"))); }
 
     public void validateAndReconnectAsync() {
         if (!this.isOpen()) {
@@ -28,7 +28,7 @@ public class Client extends WebSocketClient {
                 try {
                     CaliSync.LOGGER.warn("Socket closed. Reconnecting in 3s...");
                     Thread.sleep(3000);
-                    this.reconnectBlocking();
+                    this.reconnect();
                 } catch (InterruptedException e) {
                     CaliSync.LOGGER.fatal("", e);
                     System.exit(-1);
@@ -88,15 +88,8 @@ public class Client extends WebSocketClient {
 
     @Override
     public void onClose(int i, String s, boolean b) {
-        if (s.contains("502 Bad Gateway")) {
-            this.onError(new Exception("%d %s %s".formatted(i, b, s)));
-            return;
-        }
-
-        this.validateAndReconnectAsync();
-
-        CaliSync.LOGGER.info("Connection closed.");
-        CaliSync.notifySystem.notify("서버와의 연결이 종료되었습니다.", "백엔드 서버와 재접속을 시도하는 중입니다.");
+        if (s.contains("502 Bad Gateway")) this.onError(new Exception("%d %s %s".formatted(i, b, s)));
+        CaliSync.LOGGER.info("Connection closed. (code: {})", i);
     }
 
     @Override

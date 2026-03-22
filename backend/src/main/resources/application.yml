@@ -1,0 +1,23 @@
+spring:
+  mvc.async.request-timeout: 86400000
+  ai:
+    mcp:
+      server:
+        name: "Calisync MCP Server"
+        version: "1.0.0"
+        protocol: SSE
+        sse-endpoint: "/calimcp/sse"
+        sse-message-endpoint: "/calimcp/message"
+
+
+logging.level:
+  org.springframework.ai.mcp: ERROR
+  io.modelcontextprotocol: ERROR
+  org.springframework.support.PostProcessorRegistrationDelegate$BeanPostProcessorCheckor: ERROR
+
+server:
+  forward-headers-strategy: framework
+  servlet.session.cookie:
+    secure: true
+    same-site: none
+  tomcat.connection-timeout: 86400000

@@ -82,6 +82,10 @@ public class Date {
         } else if (s.contains("-")) { // 2. 'yyyy-MM-dd'
             String[] dateParts = s.split("-");
             year = dateParts[0]; month = dateParts[1]; day = dateParts[2];
+        } else if (s.contains(".")) { // 5. 'yyyy.MM.dd.' 또는 'yyyy.MM.dd'
+            // 끝에 마침표가 있을 수 있으니 split 하기 전에 정리하거나, split 후 빈 문자열 무시
+            String[] dateParts = s.split("\\.");
+            year = dateParts[0]; month = dateParts[1]; day = dateParts[2];
         } else if (s.length() == 8 && s.matches("\\d+")) { // 3. 'yyyyMMdd'
             year = s.substring(0, 4);
             month = s.substring(4, 6);
