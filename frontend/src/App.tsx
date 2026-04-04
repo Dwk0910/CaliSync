@@ -268,6 +268,14 @@ export default function App() {
         // 최초 웹소켓 연결
         socketConnect();
 
+        // 모바일용 웹소켓 재연결 로직
+        const handleFocus = () => {
+            if (socket.current?.readyState === WebSocket.CLOSED) {
+                socketConnect();
+            }
+        };
+        window.addEventListener('focus', handleFocus);
+
         return () => {
             if (socket.current) {
                 // 재연결 방지
