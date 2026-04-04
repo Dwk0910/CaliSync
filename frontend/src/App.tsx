@@ -49,6 +49,8 @@ export default function App() {
     const protoSecured = import.meta.env.VITE_API_BACKEND_PROTOCOL != "ns";
     const backend = (protoSecured ? "https://" : "http://") + servurl;
 
+    const socket = useRef<WebSocket | null>(null);
+
     const [now] = useState<Date>(() => new Date());
 
     const [sessionId, setSessionId] = useState<string>("");
@@ -216,10 +218,23 @@ export default function App() {
         } else setAuthorized(false);
 
         // 웹소켓 통신 시도 및 id 등록
-        let socket: WebSocket;
+        let socket_: WebSocket;
+
         const socketConnect = () => {
-            socket = new WebSocket((protoSecured ? "wss://" : "ws://") + servurl + "/caliweb");
-            socket.onmessage = (e) => {
+            socket_ = new WebSocket((protoSecured ? "wss://" : "ws://") + servurl + "/caliweb");
+
+            socket_.onopen = () => {
+                if (socketError) {
+                    axios.post(backend + "/auth/verify", { token }).then((e) => {
+                        if (e.data) setAuthorized(true);
+                        else setAuthorized(false);
+
+                        setSocketError(false);
+                    }).catch((err) => console.error(err));
+                }
+            }
+
+            socket_.onmessage = (e) => {
                 const data = JSON.parse(e.data);
                 switch (data["code"]) {
                     case 0:
@@ -233,31 +248,31 @@ export default function App() {
                 }
             };
 
-            socket.onerror = (err) => {
-                // 에러 로깅 및 socket.onclose 유도
+            socket_.onerror = (err) => {
+                // 에러 로깅
                 setSocketError(true);
                 console.error(err);
-
-                // 재연결 억제
-                socket.onclose = null;
             }
 
-            socket.onclose = async () => {
+            socket_.onclose = async () => {
                 // 재귀호출로 소켓 재연결 시도
-                console.log("WebSocket closed. Reconnecting in 1s...")
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                console.log("WebSocket closed. Reconnecting in 3s...")
+
+                await new Promise(resolve => setTimeout(resolve, 3000));
                 socketConnect();
             }
+
+            socket.current = socket_;
         }
 
         // 최초 웹소켓 연결
         socketConnect();
 
         return () => {
-            if (socket) {
-                // 클린업 시에는 재연결 방지
-                socket.onclose = null;
-                socket.close();
+            if (socket.current) {
+                // 재연결 방지
+                socket.current.onclose = null;
+                socket.current.close();
             }
         }
     }, [backend, protoSecured, servurl]);
@@ -475,7 +490,7 @@ export default function App() {
     if (authorized == undefined || socketError) {
         return (
             <div className={"w-full h-screen flex items-center justify-center bg-neutral-700"}>
-                <span className={"font-suite text-white"}>{!socketError ? "클라이언트 인증 중입니다..." : "서버와 통신하는 중 오류가 발생했습니다"}</span>
+                <span className={"font-suite text-white"}>{!socketError ? "클라이언트 인증 중입니다..." : (<div className={"text-center"}>서버와 통신하는 중 오류가 발생했습니다<br/><span className={"text-gray-400"}>재연결을 시도하는 중입니다...</span></div>)}</span>
             </div>
         );
     } else if (!authorized) {

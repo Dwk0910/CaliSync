@@ -4,7 +4,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 
 // useGoogleLogin 훅은 App 안에서 정의할 수 없음 (훅들은 App이 불려오면서 실행되는데, useGoogleLogin은 <GoogleOAuthProvider/> 안에 속해야 하기 때문에 외부에서 선언한 다음 App에서 호출해야함
 export default function LoginButtion({ backend, setAuthorized, fetchSchedules }: { backend: string; setAuthorized: Dispatch<SetStateAction<boolean | undefined>>; fetchSchedules: () => void }) {
-    const redirect_uri = import.meta.env.VITE_API_ADDRESS;
+    const redirect_uri = window.location.origin;
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
