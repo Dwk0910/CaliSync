@@ -265,18 +265,19 @@ export default function App() {
             socket.current = socket_;
         }
 
+        // 모바일용 웹소켓 재연결 로직
+        const handleFocus = () => {
+            if (document.visibilityState === "visible" && socket.current?.readyState === WebSocket.CLOSED) socketConnect();
+        };
+
+        document.addEventListener("visibilitychange", handleFocus);
+
         // 최초 웹소켓 연결
         socketConnect();
 
-        // 모바일용 웹소켓 재연결 로직
-        const handleFocus = () => {
-            if (socket.current?.readyState === WebSocket.CLOSED) {
-                socketConnect();
-            }
-        };
-        window.addEventListener('focus', handleFocus);
-
         return () => {
+            document.removeEventListener("visibilitychange", handleFocus);
+
             if (socket.current) {
                 // 재연결 방지
                 socket.current.onclose = null;
