@@ -138,7 +138,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                         );
                         const lunar = Lunar.fromDate(date);
                         return (
-                            <div className="ml-2 pb-1.5 text-gray-400 flex items-end">
+                            <div className="ml-2 pb-1.5 text-gray-400 flex items-center">
                                 {getDayName(date, holidayInf.isHoliday)}
                                 <span className="mx-1">·</span>
                                 <span className={"text-[0.9rem] mr-1"}>(음)</span>
