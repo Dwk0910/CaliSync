@@ -1,11 +1,17 @@
 package org.neatore.caliback.controller;
 
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +28,7 @@ import org.neatore.caliback.services.SpecialDayService;
 import org.neatore.caliback.services.DBCService;
 import org.neatore.caliback.object.Date;
 import org.neatore.caliback.object.SpecialDay;
+import org.neatore.caliback.object.SSEResponse;
 
 import java.io.IOException;
 
@@ -32,8 +39,10 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/webservice")
 public class WebServiceController {
     private final UserVerifyService uvs;
@@ -44,12 +53,8 @@ public class WebServiceController {
     private Map<SpecialDay, SpecialDay> replaceTargets = null;
     private Map<String, SpecialDay> additions = null;
 
-    public WebServiceController(UserVerifyService uvs, AutoUpdateService autoUpdateService, SpecialDayService specialDayService, DBCService dbcService) {
-        this.uvs = uvs;
-        this.autoUpdateService = autoUpdateService;
-        this.specialDayService = specialDayService;
-        this.dbcService = dbcService;
-
+    @PostConstruct
+    public void init() {
         // parsing custom data
         try {
             final JSONObject customFileData = new JSONObject(Files.readString(Path.of(CaliBack.datapath.toString(), "custom_settings.json")));
@@ -81,6 +86,35 @@ public class WebServiceController {
             if (e instanceof NoSuchFileException) CaliBack.LOGGER.info("Custom setting file does not exist.");
             else CaliBack.LOGGER.warn("Failed to load custom settings for Special Days. Your custom settings will not be loaded.", e);
         }
+    }
+
+    // SSE event source
+    @GetMapping(value = "/autoRefereshEventSource", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<SseEmitter> subscribeAutoRefereshSignal() {
+        // 30분 타임아웃
+        SseEmitter emitter = new SseEmitter(1000L * 64 * 30);
+        Runnable unsubscribeAction = () -> autoUpdateService.removeSession(emitter);
+        emitter.onCompletion(unsubscribeAction);
+        emitter.onTimeout(emitter::complete);
+        emitter.onError((e) -> {
+            CaliBack.LOGGER.error("", e);
+            unsubscribeAction.run();
+        });
+
+        String uuid = UUID.randomUUID().toString();
+
+        // 연결 신호
+        try {
+            emitter.send(SseEmitter.event().data(new SSEResponse(0, uuid)).build());
+
+            // emitter 등록
+            autoUpdateService.addSession(new AutoUpdateService.SSESession(uuid, emitter));
+        } catch (IOException e) {
+            CaliBack.LOGGER.error("", e);
+            emitter.completeWithError(e);
+        }
+
+        return ResponseEntity.ok(emitter);
     }
 
     @GetMapping("/getMonthInfo/{year}/{month}")
