@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,6 +30,7 @@ import org.neatore.caliback.services.DBCService;
 import org.neatore.caliback.object.Date;
 import org.neatore.caliback.object.SpecialDay;
 import org.neatore.caliback.object.SSEResponse;
+import org.neatore.caliback.util.EmitterSender;
 
 import java.io.IOException;
 
@@ -97,22 +99,17 @@ public class WebServiceController {
         emitter.onCompletion(unsubscribeAction);
         emitter.onTimeout(emitter::complete);
         emitter.onError((e) -> {
-            CaliBack.LOGGER.error("", e);
+            if (!(e instanceof AsyncRequestNotUsableException)) CaliBack.LOGGER.error("", e);
             unsubscribeAction.run();
         });
 
         String uuid = UUID.randomUUID().toString();
 
         // 연결 신호
-        try {
-            emitter.send(SseEmitter.event().data(new SSEResponse(0, uuid)).build());
+        EmitterSender.send(emitter, new SSEResponse(0, uuid));
 
-            // emitter 등록
-            autoUpdateService.addSession(new AutoUpdateService.SSESession(uuid, emitter));
-        } catch (IOException e) {
-            CaliBack.LOGGER.error("", e);
-            emitter.completeWithError(e);
-        }
+        // emitter 등록
+        autoUpdateService.addSession(new AutoUpdateService.SSESession(uuid, emitter));
 
         return ResponseEntity.ok(emitter);
     }
