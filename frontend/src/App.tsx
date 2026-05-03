@@ -251,66 +251,6 @@ export default function App() {
                 console.warn(`message : ${msg.data}`);
             }
         }
-
-        // // 웹소켓 통신 시도 및 id 등록
-        // let socket_: WebSocket;
-        //
-        // const socketConnect = () => {
-        //     socket_ = new WebSocket((protoSecured ? "wss://" : "ws://") + servurl + "/caliweb");
-        //
-        //     socket_.onopen = () => {
-        //     }
-        //
-        //     socket_.onmessage = (e) => {
-        //         const data = JSON.parse(e.data);
-        //         switch (data["code"]) {
-        //             case 0:
-        //                 setSessionId(data["body"]);
-        //                 break;
-        //             case 600:
-        //                 (async () => {
-        //                     await fetchRef.current();
-        //                 })();
-        //                 break;
-        //         }
-        //     };
-        //
-        //     socket_.onerror = (err) => {
-        //         // 에러 로깅
-        //         setSocketError(true);
-        //         console.error(err);
-        //     }
-        //
-        //     socket_.onclose = async () => {
-        //         // 재귀호출로 소켓 재연결 시도
-        //         console.log("WebSocket closed. Reconnecting in 3s...")
-        //
-        //         await new Promise(resolve => setTimeout(resolve, 3000));
-        //         socketConnect();
-        //     }
-        //
-        //     socket.current = socket_;
-        // }
-
-        // // 모바일용 웹소켓 재연결 로직
-        // const handleFocus = () => {
-        //     if (document.visibilityState === "visible" && socket.current?.readyState === WebSocket.CLOSED) socketConnect();
-        // };
-        //
-        // document.addEventListener("visibilitychange", handleFocus);
-        //
-        // // 최초 웹소켓 연결
-        // socketConnect();
-        //
-        // return () => {
-        //     document.removeEventListener("visibilitychange", handleFocus);
-        //
-        //     if (socket.current) {
-        //         // 재연결 방지
-        //         socket.current.onclose = null;
-        //         socket.current.close();
-        //     }
-        // }
     }, [backend, protoSecured, servurl]);
 
     // 백엔드 서버 통신 시도 및 국가 이벤트, 사용자 이벤트 호출하기
