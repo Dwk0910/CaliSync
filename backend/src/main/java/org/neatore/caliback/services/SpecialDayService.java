@@ -1,5 +1,7 @@
 package org.neatore.caliback.services;
 
+import org.slf4j.MarkerFactory;
+
 import org.springframework.stereotype.Service;
 
 import org.json.XML;
@@ -120,7 +122,7 @@ public class SpecialDayService {
                 }
             }
         } catch (IOException e) {
-            CaliBack.LOGGER.fatal("SpecialDayService refreshing error : {}", e);
+            CaliBack.LOGGER.error(MarkerFactory.getMarker("FATAL"), "SpecialDayService refreshing error", e);
         }
     }
 
@@ -180,7 +182,7 @@ public class SpecialDayService {
 
             return days;
         } catch (IOException | JSONException | URISyntaxException e) {
-            CaliBack.LOGGER.fatal("SpecialDayService getItemFromURL error : ", e);
+            CaliBack.LOGGER.error(MarkerFactory.getMarker("FATAL"), "SpecialDayService getItemFromURL error", e);
             return new JSONArray();
         }
     }
