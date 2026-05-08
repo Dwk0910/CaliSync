@@ -7,6 +7,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import org.neatore.caliback.object.SSESession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.neatore.caliback.CaliBack;
+import org.neatore.caliback.services.LogSenderService;
 import org.neatore.caliback.services.UserVerifyService;
 import org.neatore.caliback.services.AutoUpdateService;
 import org.neatore.caliback.services.SpecialDayService;
@@ -31,6 +33,7 @@ import org.neatore.caliback.object.Date;
 import org.neatore.caliback.object.SpecialDay;
 import org.neatore.caliback.object.SSEResponse;
 import org.neatore.caliback.util.EmitterSender;
+import org.neatore.caliback.abs.ServerEventSender;
 
 import java.io.IOException;
 
@@ -50,6 +53,7 @@ public class WebServiceController {
     private final UserVerifyService uvs;
     private final AutoUpdateService autoUpdateService;
     private final SpecialDayService specialDayService;
+    private final LogSenderService logSenderService;
     private final DBCService dbcService;
 
     private Map<SpecialDay, SpecialDay> replaceTargets = null;
@@ -91,11 +95,12 @@ public class WebServiceController {
     }
 
     // SSE event source
-    @GetMapping(value = "/autoRefereshEventSource", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<SseEmitter> subscribeAutoRefereshSignal() {
+    private SSESession createNewEmitter(ServerEventSender eventSender, String... sessionId) {
         // 30분 타임아웃
-        SseEmitter emitter = new SseEmitter(1000L * 64 * 30);
-        Runnable unsubscribeAction = () -> autoUpdateService.removeSession(emitter);
+        SseEmitter emitter = new SseEmitter(1000L * 60 * 30);
+        SSESession session = new SSESession(sessionId.length < 1 ? UUID.randomUUID().toString() : sessionId[0], emitter);
+
+        Runnable unsubscribeAction = () -> eventSender.removeSession(session);
         emitter.onCompletion(unsubscribeAction);
         emitter.onTimeout(emitter::complete);
         emitter.onError((e) -> {
@@ -103,13 +108,35 @@ public class WebServiceController {
             unsubscribeAction.run();
         });
 
+        return session;
+    }
+
+    @GetMapping(value = "/autoRefereshEventSource", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<SseEmitter> subscribeAutoRefereshSignal() {
+        SseEmitter emitter = this.createNewEmitter(autoUpdateService).getSession();
+
         String uuid = UUID.randomUUID().toString();
 
         // 연결 신호
         EmitterSender.send(emitter, new SSEResponse(0, uuid));
 
         // emitter 등록
-        autoUpdateService.addSession(new AutoUpdateService.SSESession(uuid, emitter));
+        autoUpdateService.addSession(new SSESession(uuid, emitter));
+
+        return ResponseEntity.ok(emitter);
+    }
+
+    @GetMapping(value = "/serverlog", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<SseEmitter> serverLogSignal(@RequestHeader("Authorization") String token) {
+        if (!uvs.verify(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        SSESession session = this.createNewEmitter(logSenderService);
+        SseEmitter emitter = session.getSession();
+
+        // 연결 신호
+        EmitterSender.send(emitter, new SSEResponse(200, "OK"));
+
+        logSenderService.addSession(session);
 
         return ResponseEntity.ok(emitter);
     }
