@@ -18,6 +18,7 @@ import EditScheulde from "./popup/EditSchedule";
 
 // components
 import LoginButtion from "./components/LoginButton";
+import ServerCommand from "./popup/ServerCommand.tsx";
 
 // Type definition
 
@@ -429,6 +430,17 @@ export default function App() {
             component: <MoveTo date={showingCalendar} setDate={setShowingCalendar} close={close} />,
             allowBgClose: true,
             height: "350px"
+        },
+        ServerCommand: {
+            component: (
+                <ServerCommand
+                    protoSecured={protoSecured}
+                    servurl={servurl}
+                    close={() => setPopupState(false, "ServerCommand")}
+                />
+            ),
+            allowBgClose: true,
+            height: "80%"
         }
     };
 
@@ -442,6 +454,10 @@ export default function App() {
         content: "",
         allowBgClose: true
     });
+
+    const setPopupState = (open: boolean, content: string) => {
+        setPopup((prev) => ({ ...prev, open, content }));
+    };
 
     // 비인증 시 단순히 가리는 게 아니라 아예 출력 자체가 안되어야 하므로 return문을 따로 작성
 
@@ -551,12 +567,13 @@ export default function App() {
                         <span className={"font-suite"}>Desktop Calendar</span>
                     </div>
                     <MdMyLocation onPointerUp={() => setShowingCalendar(now)} />
-                    <IoTerminalOutline className={"ml-5"} />
+                    <IoTerminalOutline
+                        className={"ml-5"}
+                        onPointerUp={() => setPopupState(true, "ServerCommand")}
+                    />
                     <FaArrowRight
                         className={"ml-5"}
-                        onPointerUp={() => {
-                            setPopup((prev) => ({ ...prev, open: true, content: "MoveTo" }));
-                        }}
+                        onPointerUp={() => setPopupState(true, "MoveTo")}
                     />
                     <RxReload
                         className={"ml-5 font-bold"}
