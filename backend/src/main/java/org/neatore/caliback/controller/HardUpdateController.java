@@ -74,7 +74,7 @@ public class HardUpdateController {
                     .contentType(MediaType.parseMediaType("application/x-gzip"))
                     .body(resource);
         } catch (Exception e) {
-            LOGGER.error(e);
+            LOGGER.error("", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
