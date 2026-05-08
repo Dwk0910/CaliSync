@@ -2,6 +2,7 @@ package org.neatore.caliback.handler;
 
 import org.jetbrains.annotations.NotNull;
 
+import org.neatore.caliback.object.WSSession;
 import org.neatore.caliback.util.Response;
 import org.neatore.caliback.object.PacketResponse;
 import org.neatore.caliback.services.AutoUpdateService;
@@ -22,11 +23,11 @@ public class WebServiceHandler extends TextWebSocketHandler {
         // sessionId 제공
         Response.response(session, new PacketResponse(0, session.getId()));
 
-        autoUpdateService.addSession(session);
+        autoUpdateService.addSession(new WSSession(null, session));
     }
 
     @Override
     public void afterConnectionClosed(@NotNull WebSocketSession session, @NotNull CloseStatus status) {
-        autoUpdateService.removeSession(session);
+        autoUpdateService.removeSession(new WSSession(null, session));
     }
 }
