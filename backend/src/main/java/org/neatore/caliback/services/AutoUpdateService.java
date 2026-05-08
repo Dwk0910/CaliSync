@@ -3,38 +3,41 @@ package org.neatore.caliback.services;
 import static org.neatore.caliback.util.Response.response;
 
 import jakarta.annotation.PreDestroy;
+
 import org.neatore.caliback.CaliBack;
+import org.neatore.caliback.abs.IdentableObject;
+import org.neatore.caliback.abs.ServerEventSender;
 import org.neatore.caliback.object.PacketResponse;
 import org.neatore.caliback.object.SSEResponse;
-
+import org.neatore.caliback.object.SSESession;
 import org.neatore.caliback.util.EmitterSender;
+
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 @Service
-public class AutoUpdateService {
-    public record SSESession(String sessionId, SseEmitter emitter) {
-    }
+public class AutoUpdateService extends ServerEventSender {
+
 
     private final Set<WebSocketSession> sessions = Collections.synchronizedSet(new HashSet<>());
     private final Set<SSESession> sse_sessions = Collections.synchronizedSet(new HashSet<>());
 
-    public void addSession(SSESession session) {
-        sse_sessions.add(session);
-    }
-    public void addSession(WebSocketSession session) {
-        sessions.add(session);
+    @Override
+    public void addSession(IdentableObject session) {
+        if (session instanceof SSESession sse) sse_sessions.add(sse);
+        else sessions.add((WebSocketSession) session);
     }
 
-    public void removeSession(SseEmitter session) { sse_sessions.removeIf(s -> s.emitter.equals(session)); }
-    public void removeSession(WebSocketSession session) {
-        sessions.remove(session);
+    @Override
+    public void removeSession(IdentableObject session) {
+        if (session instanceof SSESession sse) sse_sessions.removeIf(s -> s.getSessionId().equals(sse.getSessionId()));
+        else sessions.remove((WebSocketSession) session);
     }
 
     @PreDestroy
@@ -46,7 +49,7 @@ public class AutoUpdateService {
                 CaliBack.LOGGER.error("Error while closing sessions", e);
             }
         });
-        sse_sessions.forEach(session -> session.emitter.complete());
+        sse_sessions.forEach(session -> session.getSession().complete());
     }
 
     public void trigger(String senderId) {
@@ -55,8 +58,8 @@ public class AutoUpdateService {
         }
 
         for (SSESession session : sse_sessions) {
-            if (!session.sessionId.equals(senderId)) {
-                EmitterSender.send(session.emitter, new SSEResponse(600, null));
+            if (!session.getSessionId().equals(senderId)) {
+                EmitterSender.send(session.getSession(), new SSEResponse(600, null));
             }
         }
     }
