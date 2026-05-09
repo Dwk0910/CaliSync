@@ -12,7 +12,6 @@ import org.neatore.caliback.object.SSESession;
 import org.neatore.caliback.util.EmitterSender;
 
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -20,7 +19,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 @Service
 public class LogSenderService extends ServerEventSender {
     @Getter
-    private final Set<SseEmitter> sessions = new CopyOnWriteArraySet<>();
+    private final Set<SSESession> sessions = new CopyOnWriteArraySet<>();
     private JSONArray previous = new JSONArray();
 
     // singleton
@@ -33,14 +32,14 @@ public class LogSenderService extends ServerEventSender {
     @Override
     public void addSession(IdentableObject session) {
         if (session instanceof SSESession sseSession) {
-            sessions.add(sseSession.getSession());
+            sessions.add(sseSession);
             trigger();
         } else CaliBack.LOGGER.warn("LogSenderService: Tried to add non-SSE session (sessionId: {})", session.getId());
     }
 
     @Override
     public void removeSession(IdentableObject session) {
-        if (session instanceof SSESession sseSession) sessions.remove(sseSession.getSession());
+        if (session instanceof SSESession sseSession) sessions.removeIf(s -> s.getSessionId().equals(sseSession.getSessionId()));
     }
 
     public void logAll(JSONArray messageArr) {
@@ -54,8 +53,12 @@ public class LogSenderService extends ServerEventSender {
     }
 
     private void trigger() {
-        for (SseEmitter session : sessions) {
-            EmitterSender.send(session, new SSEResponse(200, previous.toString()));
+        for (SSESession session : sessions) {
+            try {
+                EmitterSender.send(session.getSession(), new SSEResponse(200, previous.toString()));
+            } catch (IllegalStateException ignored) {
+                this.removeSession(session);
+            }
         }
     }
 }

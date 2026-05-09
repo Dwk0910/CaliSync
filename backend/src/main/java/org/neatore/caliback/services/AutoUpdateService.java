@@ -57,10 +57,14 @@ public class AutoUpdateService extends ServerEventSender {
             if (session.isOpen() && !session.getId().equals(senderId)) response(session, new PacketResponse(600, null));
         }
 
+        final Set<SSESession> unavailableSessions = new HashSet<>();
         for (SSESession session : sse_sessions) {
             if (!session.getSessionId().equals(senderId)) {
-                EmitterSender.send(session.getSession(), new SSEResponse(600, null));
+                boolean b = EmitterSender.send(session.getSession(), new SSEResponse(600, null));
+                if (!b) unavailableSessions.add(session);
             }
         }
+
+        unavailableSessions.forEach(sse_sessions::remove);
     }
 }
