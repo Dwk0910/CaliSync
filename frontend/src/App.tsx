@@ -131,7 +131,7 @@ export default function App() {
                         `/webservice/getMonthInfo/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
                     {
                         headers: {
-                            "X-Client-Token": localStorage.getItem("calisync_token") || ""
+                            Authorization: localStorage.getItem("calisync_token") || ""
                         }
                     }
                 )
@@ -437,6 +437,7 @@ export default function App() {
                     protoSecured={protoSecured}
                     servurl={servurl}
                     close={() => setPopupState(false, "ServerCommand")}
+                    currentYear={monthInfo.currentYear}
                 />
             ),
             allowBgClose: true,

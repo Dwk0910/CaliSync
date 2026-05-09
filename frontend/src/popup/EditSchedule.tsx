@@ -1,29 +1,29 @@
-import * as React from 'react';
-import { useState, useEffect } from 'react';
+import * as React from "react";
+import { useState, useEffect } from "react";
 
-import no_color from '../assets/editscheudle_popup_asset/no_color.png';
+import no_color from "../assets/editscheudle_popup_asset/no_color.png";
 
 import { type SpecialDay, type Schedule, type Day } from "../App";
-import { type Popup } from './Popup';
+import { type Popup } from "./Popup";
 
-import { Reorder, AnimatePresence, useDragControls, motion, useAnimation } from 'framer-motion';
+import { Reorder, AnimatePresence, useDragControls, motion, useAnimation } from "framer-motion";
 
-import { IoAddOutline } from 'react-icons/io5';
+import { IoAddOutline } from "react-icons/io5";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { RxDragHandleDots2 } from "react-icons/rx";
 import { VscHistory } from "react-icons/vsc";
 
-import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
-import { Lunar } from 'lunar-javascript';
+import axios from "axios";
+import { v4 as uuidv4 } from "uuid";
+import { Lunar } from "lunar-javascript";
 import { clsx } from "clsx";
 
-import TextareaAutosize from 'react-textarea-autosize';
+import TextareaAutosize from "react-textarea-autosize";
 
 type Props = Popup<{
-    showingCalendar: Date,
-    now: Date,
-    day: Day,
+    showingCalendar: Date;
+    now: Date;
+    day: Day;
     holidayInf: {
         isHoliday: boolean;
         specdays: SpecialDay[];
@@ -35,11 +35,22 @@ type Props = Popup<{
     backend: string;
 }>;
 
-export default function EditSchedule({ showingCalendar, now, day, holidayInf, getDayName, refresh, close, setAllowBgClose, sessionId, backend }: Props) {
-    const [ daypopup_loading, set_daypopup_loading ] = useState<boolean>(false);
-    const [ daypopup_button_active, set_daypopup_button_active ] = useState<boolean>(false);
+export default function EditSchedule({
+    showingCalendar,
+    now,
+    day,
+    holidayInf,
+    getDayName,
+    refresh,
+    close,
+    setAllowBgClose,
+    sessionId,
+    backend
+}: Props) {
+    const [daypopup_loading, set_daypopup_loading] = useState<boolean>(false);
+    const [daypopup_button_active, set_daypopup_button_active] = useState<boolean>(false);
 
-    const [ schedules, setSchedules ] = useState<Schedule[]>(day.schedules);
+    const [schedules, setSchedules] = useState<Schedule[]>(day.schedules);
 
     useEffect(() => {
         setSchedules(day.schedules);
@@ -50,26 +61,29 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
         if (!daypopup_loading) {
             setSchedules(() => {
                 // 스케줄 칸이 비어있는 경우 (negative) 무조건 disable
-                if (t.some(s => (s.content === ""))) {
+                if (t.some((s) => s.content === "")) {
                     set_daypopup_button_active(false);
                     return t;
                 }
 
-                const prevIds = day.schedules.map(d => d.id);
-                const tIds = t.map(d => d.id);
+                const prevIds = day.schedules.map((d) => d.id);
+                const tIds = t.map((d) => d.id);
 
-                const isContentChanged = t.some(s => {
-                    const originalContent = day.schedules.find(os => os.id === s.id)?.content;
+                const isContentChanged = t.some((s) => {
+                    const originalContent = day.schedules.find((os) => os.id === s.id)?.content;
                     return originalContent !== s.content;
                 });
 
-                const isChanged = isContentChanged || prevIds.length !== tIds.length || prevIds.some((id, idx) => id != tIds[idx]);
+                const isChanged =
+                    isContentChanged ||
+                    prevIds.length !== tIds.length ||
+                    prevIds.some((id, idx) => id != tIds[idx]);
 
                 set_daypopup_button_active(isChanged);
                 return t;
             });
         }
-    }
+    };
 
     const onSave = async () => {
         if (daypopup_button_active) {
@@ -81,16 +95,20 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
             // Test: await new Promise(resolve => setTimeout(resolve, 5000));
 
             try {
-                await axios.post(backend + "/webservice/setSchedules", {
-                    date: day.date,
-                    schedules,
-                    bgColor: "",
-                }, {
-                    headers: {
-                        'X-Client-Token': localStorage.getItem("calisync_token") || "",
-                        'X-Client-ID': sessionId
+                await axios.post(
+                    backend + "/webservice/setSchedules",
+                    {
+                        date: day.date,
+                        schedules,
+                        bgColor: ""
+                    },
+                    {
+                        headers: {
+                            Authorization: localStorage.getItem("calisync_token") || "",
+                            "X-Client-ID": sessionId
+                        }
                     }
-                });
+                );
 
                 close();
                 setAllowBgClose(true);
@@ -104,7 +122,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                 return;
             }
         }
-    }
+    };
 
     const onClose = () => {
         // 로딩 중에는 팝업 닫기 불가
@@ -113,7 +131,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
             setSchedules(day.schedules);
             set_daypopup_button_active(false);
         }
-    }
+    };
 
     const currentDay = parseInt(day.date.slice(-2));
 
@@ -152,7 +170,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                 <div
                     className={clsx(
                         holidayInf.specdays.length !== 0 &&
-                        "flex flex-wrap mt-1 min-h-5 max-h-12 overflow-y-scroll gap-2"
+                            "flex flex-wrap mt-1 min-h-5 max-h-12 overflow-y-scroll gap-2"
                     )}
                 >
                     {now.getFullYear() === showingCalendar.getFullYear() &&
@@ -184,22 +202,37 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
 
                 <div className="flex justify-between">
                     <div className="flex gap-2">
-                        <div className="p-2 rounded bg-neutral-500" onClick={() => {
-                            const to: Schedule[] = Array.from(schedules);
+                        <div
+                            className="p-2 rounded bg-neutral-500"
+                            onClick={() => {
+                                const to: Schedule[] = Array.from(schedules);
 
-                            const month: string = ((showingCalendar.getMonth() + 1).toString().length == 1) ? "0" + (showingCalendar.getMonth() + 1) : (showingCalendar.getMonth() + 1).toString();
-                            const day: string = (currentDay.toString().length == 1) ? "0" + (currentDay.toString()) : currentDay.toString();
+                                const month: string =
+                                    (showingCalendar.getMonth() + 1).toString().length == 1
+                                        ? "0" + (showingCalendar.getMonth() + 1)
+                                        : (showingCalendar.getMonth() + 1).toString();
+                                const day: string =
+                                    currentDay.toString().length == 1
+                                        ? "0" + currentDay.toString()
+                                        : currentDay.toString();
 
-                            to.push({
-                                id: uuidv4(),
-                                date: `${showingCalendar.getFullYear()}${month}${day}`,
-                                content: "",
-                                isCompleted: false,
-                            });
-                            changeSchedules(to);
-                        }}><IoAddOutline /></div>
-                        <div className="p-2 rounded bg-neutral-500"><VscHistory /></div>
-                        <div className="p-2 rounded bg-neutral-500"><RiDeleteBin6Line /></div>
+                                to.push({
+                                    id: uuidv4(),
+                                    date: `${showingCalendar.getFullYear()}${month}${day}`,
+                                    content: "",
+                                    isCompleted: false
+                                });
+                                changeSchedules(to);
+                            }}
+                        >
+                            <IoAddOutline />
+                        </div>
+                        <div className="p-2 rounded bg-neutral-500">
+                            <VscHistory />
+                        </div>
+                        <div className="p-2 rounded bg-neutral-500">
+                            <RiDeleteBin6Line />
+                        </div>
                     </div>
                     <div className="border border-gray-400 rounded overflow-hidden">
                         <img src={no_color} alt="nc" className="w-7 h-7" />
@@ -218,9 +251,12 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                         <AnimatePresence mode="popLayout">
                             {schedules.length === 0 ? (
                                 <div className="mt-20 text-center text-gray-400">
-                                    {daypopup_loading ? "로딩 중입니다..." : "이 날은 일정 및 이벤트가 없습니다."}
+                                    {daypopup_loading
+                                        ? "로딩 중입니다..."
+                                        : "이 날은 일정 및 이벤트가 없습니다."}
                                 </div>
-                            ) : schedules.map(item => (
+                            ) : (
+                                schedules.map((item) => (
                                     <ScheduleItem
                                         key={item.id}
                                         itemId={item.id}
@@ -228,7 +264,7 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                                         setSchedules={changeSchedules}
                                     />
                                 ))
-                            }
+                            )}
                         </AnimatePresence>
                     </Reorder.Group>
                 </div>
@@ -253,24 +289,35 @@ export default function EditSchedule({ showingCalendar, now, day, holidayInf, ge
                     )}
                     onPointerUp={onSave}
                 >
-                    {
-                        daypopup_loading ? (
-                            <div className={"w-5 h-5 border-2 border-white/20 border-t-white/40 rounded-full animate-spin"}>
-                            </div>
-                        ) : "저장"
-                    }
+                    {daypopup_loading ? (
+                        <div
+                            className={
+                                "w-5 h-5 border-2 border-white/20 border-t-white/40 rounded-full animate-spin"
+                            }
+                        ></div>
+                    ) : (
+                        "저장"
+                    )}
                 </div>
             </div>
         </div>
     );
 }
 
-const ScheduleItem = ({ itemId, schedules, setSchedules }: { itemId: string; schedules: Schedule[]; setSchedules: (t: Schedule[]) => void; }) => {
+const ScheduleItem = ({
+    itemId,
+    schedules,
+    setSchedules
+}: {
+    itemId: string;
+    schedules: Schedule[];
+    setSchedules: (t: Schedule[]) => void;
+}) => {
     const reorderItemDragControl = useDragControls();
     const deleteItemDragControl = useDragControls();
     const deleteItemAnimation = useAnimation();
 
-    const item = schedules.find(item => item.id === itemId) || null;
+    const item = schedules.find((item) => item.id === itemId) || null;
 
     return (
         <Reorder.Item
@@ -285,12 +332,16 @@ const ScheduleItem = ({ itemId, schedules, setSchedules }: { itemId: string; sch
                 paddingTop: 0,
                 paddingBottom: 0
             }}
-            dragListener={ false }
-            dragControls={ reorderItemDragControl }
+            dragListener={false}
+            dragControls={reorderItemDragControl}
             transition={{ duration: 0.2 }}
             className="relative mb-2 list-none touch-none overflow-hidden shrink-0"
         >
-            <div className={"absolute flex justify-end items-center pr-2 z-0 inset-0 bg-red-400 rounded m-0.5 left-10"}>
+            <div
+                className={
+                    "absolute flex justify-end items-center pr-2 z-0 inset-0 bg-red-400 rounded m-0.5 left-10"
+                }
+            >
                 <RiDeleteBin6Line />
             </div>
             <motion.div
@@ -303,7 +354,7 @@ const ScheduleItem = ({ itemId, schedules, setSchedules }: { itemId: string; sch
                             x: -300,
                             transition: { duration: 0.2 }
                         });
-                        setSchedules(schedules.filter(p => p.id !== item?.id));
+                        setSchedules(schedules.filter((p) => p.id !== item?.id));
                     } else if (info.offset.x < -15) {
                         await deleteItemAnimation.start({
                             x: -30,
@@ -316,31 +367,43 @@ const ScheduleItem = ({ itemId, schedules, setSchedules }: { itemId: string; sch
                         });
                     }
                 }}
-                animate={ deleteItemAnimation }
-                dragControls={ deleteItemDragControl }
-                className={"relative flex z-10 w-full items-center bg-neutral-800 border border-gray-600 rounded"}
+                animate={deleteItemAnimation}
+                dragControls={deleteItemDragControl}
+                className={
+                    "relative flex z-10 w-full items-center bg-neutral-800 border border-gray-600 rounded"
+                }
             >
-                <div className={"text-[1.1rem] text-gray-400 mx-2"} onPointerDown={(e) => {
-                    e.stopPropagation();
-                    reorderItemDragControl.start(e);
-                }}>
-                    <RxDragHandleDots2/>
+                <div
+                    className={"text-[1.1rem] text-gray-400 mx-2"}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        reorderItemDragControl.start(e);
+                    }}
+                >
+                    <RxDragHandleDots2 />
                 </div>
-                <div className={"w-[90%] py-2 pr-4 touch-none wrap-break-word"} onPointerDown={(e) => deleteItemDragControl.start(e)}>
+                <div
+                    className={"w-[90%] py-2 pr-4 touch-none wrap-break-word"}
+                    onPointerDown={(e) => deleteItemDragControl.start(e)}
+                >
                     <TextareaAutosize
                         value={item?.content}
                         spellCheck={false}
-                        className={"outline-none w-full bg-transparent wrap-break-word border-none resize-none overflow-hidden text-inherit font-inherit py-0 m-0 leading-tight block"}
+                        className={
+                            "outline-none w-full bg-transparent wrap-break-word border-none resize-none overflow-hidden text-inherit font-inherit py-0 m-0 leading-tight block"
+                        }
                         // 한 개의 스케줄에서 사용자가 줄바꿈을 하면 의도치 않은 동작이 발생할 수 있음
                         onKeyDown={(e) => {
                             if (e.key === "Enter") e.preventDefault();
                         }}
                         onChange={(e) => {
                             const filteredValue = e.target.value.replace(/r?\n|\r/g, "");
-                            const newSchedules = schedules.map(s => s.id === item?.id ? { ...s, content: filteredValue } : s);
+                            const newSchedules = schedules.map((s) =>
+                                s.id === item?.id ? { ...s, content: filteredValue } : s
+                            );
                             setSchedules(newSchedules);
-                        }
-                    }/>
+                        }}
+                    />
                 </div>
             </motion.div>
         </Reorder.Item>

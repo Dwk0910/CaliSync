@@ -7,7 +7,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import org.neatore.caliback.object.SSESession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +31,7 @@ import org.neatore.caliback.services.DBCService;
 import org.neatore.caliback.object.Date;
 import org.neatore.caliback.object.SpecialDay;
 import org.neatore.caliback.object.SSEResponse;
+import org.neatore.caliback.object.SSESession;
 import org.neatore.caliback.util.EmitterSender;
 import org.neatore.caliback.abs.ServerEventSender;
 
@@ -142,7 +142,7 @@ public class WebServiceController {
     }
 
     @GetMapping("/getMonthInfo/{year}/{month}")
-    public ResponseEntity<String> getMonthInfo(@RequestHeader("X-Client-Token") String sessionToken, @PathVariable String year, @PathVariable String month) {
+    public ResponseEntity<String> getMonthInfo(@RequestHeader("Authorization") String sessionToken, @PathVariable String year, @PathVariable String month) {
         if (!uvs.verify(sessionToken)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
 
         JSONObject result = new JSONObject();
@@ -179,7 +179,7 @@ public class WebServiceController {
     }
 
     @PostMapping("/setSchedules")
-    public ResponseEntity<String> setSchedules(@RequestHeader("X-Client-Token") String sessionToken, @RequestHeader("X-Client-ID") String sessionId, @RequestBody Map<String, Object> req) {
+    public ResponseEntity<String> setSchedules(@RequestHeader("Authorization") String sessionToken, @RequestHeader("X-Client-ID") String sessionId, @RequestBody Map<String, Object> req) {
         if (!uvs.verify(sessionToken)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
 
         Date date = Date.parseDate(req.get("date").toString());
