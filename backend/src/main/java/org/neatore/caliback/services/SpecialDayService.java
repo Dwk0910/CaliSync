@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 public class SpecialDayService {
     private JSONObject data;
 
-    private void update(String target_year) {
+    private void update(String target_year, boolean... manual) {
         try {
             boolean needUpdate = false;
 
@@ -84,7 +84,7 @@ public class SpecialDayService {
             }
 
             // update
-            if (needUpdate) {
+            if (needUpdate || (manual.length > 0 && manual[0])) {
                 CaliBack.LOGGER.info("Special data for year {} has expired or does not exist. Updating Special Day database...", target_year);
 
                 JSONObject new_data = new JSONObject();
@@ -185,6 +185,14 @@ public class SpecialDayService {
             CaliBack.LOGGER.error(MarkerFactory.getMarker("FATAL"), "SpecialDayService getItemFromURL error", e);
             return new JSONArray();
         }
+    }
+
+    /**
+     * Refresh special day data for the year. This method forces update regardless of last update time.
+     * @param year - year (xxxx)
+     */
+    public void refreshSpecialDays(String year) {
+        this.update(year, true);
     }
 
     /**
