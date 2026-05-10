@@ -8,6 +8,8 @@ spring:
         protocol: SSE
         sse-endpoint: "/calimcp/sse"
         sse-message-endpoint: "/calimcp/message"
+  lifecycle:
+    timeout-per-shutdown-phase: 5s
 
 
 logging.level:

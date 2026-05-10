@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import org.neatore.caliback.object.PacketResponse;
+import org.neatore.caliback.object.WSSession;
 import org.neatore.caliback.services.AutoUpdateService;
 import org.neatore.caliback.services.DBCService;
 
@@ -26,12 +27,12 @@ public class ClientHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(@NotNull WebSocketSession session) {
-        autoUpdateService.addSession(session);
+        autoUpdateService.addSession(new WSSession(session.getId(), session));
     }
 
     @Override
     public void afterConnectionClosed(@NotNull WebSocketSession session, @NotNull CloseStatus status) {
-        autoUpdateService.removeSession(session);
+        autoUpdateService.removeSession(new WSSession(session.getId(), session));
     }
 
     @Override

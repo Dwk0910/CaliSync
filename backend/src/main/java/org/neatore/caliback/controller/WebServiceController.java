@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.neatore.caliback.CaliBack;
+import org.neatore.caliback.services.LogSenderService;
 import org.neatore.caliback.services.UserVerifyService;
 import org.neatore.caliback.services.AutoUpdateService;
 import org.neatore.caliback.services.SpecialDayService;
@@ -30,7 +31,9 @@ import org.neatore.caliback.services.DBCService;
 import org.neatore.caliback.object.Date;
 import org.neatore.caliback.object.SpecialDay;
 import org.neatore.caliback.object.SSEResponse;
+import org.neatore.caliback.object.SSESession;
 import org.neatore.caliback.util.EmitterSender;
+import org.neatore.caliback.abs.ServerEventSender;
 
 import java.io.IOException;
 
@@ -50,6 +53,7 @@ public class WebServiceController {
     private final UserVerifyService uvs;
     private final AutoUpdateService autoUpdateService;
     private final SpecialDayService specialDayService;
+    private final LogSenderService logSenderService;
     private final DBCService dbcService;
 
     private Map<SpecialDay, SpecialDay> replaceTargets = null;
@@ -90,12 +94,15 @@ public class WebServiceController {
         }
     }
 
+    // ** SERVER COMMANDS **
+
     // SSE event source
-    @GetMapping(value = "/autoRefereshEventSource", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<SseEmitter> subscribeAutoRefereshSignal() {
+    private SSESession createNewEmitter(ServerEventSender eventSender, String... sessionId) {
         // 30분 타임아웃
-        SseEmitter emitter = new SseEmitter(1000L * 64 * 30);
-        Runnable unsubscribeAction = () -> autoUpdateService.removeSession(emitter);
+        SseEmitter emitter = new SseEmitter(1000L * 60 * 30);
+        SSESession session = new SSESession(sessionId.length < 1 ? UUID.randomUUID().toString() : sessionId[0], emitter);
+
+        Runnable unsubscribeAction = () -> eventSender.removeSession(session);
         emitter.onCompletion(unsubscribeAction);
         emitter.onTimeout(emitter::complete);
         emitter.onError((e) -> {
@@ -103,19 +110,55 @@ public class WebServiceController {
             unsubscribeAction.run();
         });
 
-        String uuid = UUID.randomUUID().toString();
+        return session;
+    }
+
+    @GetMapping(value = "/autoRefereshEventSource", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<SseEmitter> subscribeAutoRefereshSignal() {
+        SSESession sseSession = this.createNewEmitter(autoUpdateService);
 
         // 연결 신호
-        EmitterSender.send(emitter, new SSEResponse(0, uuid));
+        EmitterSender.send(sseSession.getSession(), new SSEResponse(0, sseSession.getSessionId()));
 
         // emitter 등록
-        autoUpdateService.addSession(new AutoUpdateService.SSESession(uuid, emitter));
+        autoUpdateService.addSession(sseSession);
+
+        return ResponseEntity.ok(sseSession.getSession());
+    }
+
+    @GetMapping(value = "/serverlog", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<SseEmitter> serverLogSignal(@RequestHeader("Authorization") String token) {
+        if (!uvs.verify(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        SSESession session = this.createNewEmitter(logSenderService);
+        SseEmitter emitter = session.getSession();
+
+        // 연결 신호
+        EmitterSender.send(emitter, new SSEResponse(200, "OK"));
+
+        logSenderService.addSession(session);
 
         return ResponseEntity.ok(emitter);
     }
 
+    @GetMapping("/servercmd/refreshspecialdays/{year}")
+    public ResponseEntity<?> refreshSpecialDays(@RequestHeader("Authorization") String token, @PathVariable String year) {
+        if (!uvs.verify(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        specialDayService.refreshSpecialDays(year);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/servercmd/logout")
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String token) {
+        if (!uvs.verify(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        uvs.deleteSession(token);
+        return ResponseEntity.ok().build();
+    }
+
+    // *************************************
+
     @GetMapping("/getMonthInfo/{year}/{month}")
-    public ResponseEntity<String> getMonthInfo(@RequestHeader("X-Client-Token") String sessionToken, @PathVariable String year, @PathVariable String month) {
+    public ResponseEntity<String> getMonthInfo(@RequestHeader("Authorization") String sessionToken, @PathVariable String year, @PathVariable String month) {
         if (!uvs.verify(sessionToken)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
 
         JSONObject result = new JSONObject();
@@ -152,7 +195,7 @@ public class WebServiceController {
     }
 
     @PostMapping("/setSchedules")
-    public ResponseEntity<String> setSchedules(@RequestHeader("X-Client-Token") String sessionToken, @RequestHeader("X-Client-ID") String sessionId, @RequestBody Map<String, Object> req) {
+    public ResponseEntity<String> setSchedules(@RequestHeader("Authorization") String sessionToken, @RequestHeader("X-Client-ID") String sessionId, @RequestBody Map<String, Object> req) {
         if (!uvs.verify(sessionToken)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
 
         Date date = Date.parseDate(req.get("date").toString());

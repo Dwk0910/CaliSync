@@ -1,6 +1,6 @@
 import * as React from "react";
 import axios from "axios";
-import { GoogleOAuthProvider } from '@react-oauth/google';
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 
 import { clsx } from "clsx";
@@ -18,6 +18,7 @@ import EditScheulde from "./popup/EditSchedule";
 
 // components
 import LoginButtion from "./components/LoginButton";
+import ServerCommand from "./popup/ServerCommand.tsx";
 
 // Type definition
 
@@ -62,9 +63,9 @@ export default function App() {
     const [loadingError, setLoadingError] = useState<boolean>(false);
     const [loadingSchedules, setLoadingSchedules] = useState<boolean>(true);
 
-    const [specialDays, setSpecialDays] = useState<
-        Map<string, Array<SpecialDay>>
-    >(new Map<string, Array<SpecialDay>>());
+    const [specialDays, setSpecialDays] = useState<Map<string, Array<SpecialDay>>>(
+        new Map<string, Array<SpecialDay>>()
+    );
     const [days, setDays] = useState<Map<string, Day>>(new Map<string, Day>());
 
     const monthInfo = useMemo(
@@ -75,36 +76,31 @@ export default function App() {
             startDay: new Date(
                 showingCalendar.getFullYear(),
                 showingCalendar.getMonth(),
-                1,
+                1
             ).getDay(),
             dayCount: new Date(
                 showingCalendar.getFullYear(),
                 showingCalendar.getMonth() + 1,
-                0,
-            ).getDate(),
+                0
+            ).getDate()
         }),
-        [showingCalendar],
+        [showingCalendar]
     );
 
     const holidayInf = useMemo(() => {
-        if (currentDay === 0) return {isHoliday: false, specdays: []};
+        if (currentDay === 0) return { isHoliday: false, specdays: [] };
 
         const specials = specialDays.get(currentDay.toString()) || [];
-        const isHoliday = specials.some(
-            (s) => s.type === "holi" || s.type === "rest",
-        );
+        const isHoliday = specials.some((s) => s.type === "holi" || s.type === "rest");
 
         return {
             isHoliday: isHoliday,
-            specdays: specials,
+            specdays: specials
         };
     }, [currentDay, specialDays]);
 
     // getDay (요일 구하기)
-    const getDay: (date: Date, isHoliday: boolean) => React.ReactNode = (
-        date,
-        isHoliday,
-    ) => {
+    const getDay: (date: Date, isHoliday: boolean) => React.ReactNode = (date, isHoliday) => {
         const style: (idx: number) => string = (idx) => {
             if (isHoliday) return "text-red-400";
             switch (idx) {
@@ -117,20 +113,8 @@ export default function App() {
             }
         };
 
-        const days = [
-            "일요일",
-            "월요일",
-            "화요일",
-            "수요일",
-            "목요일",
-            "금요일",
-            "토요일",
-        ];
-        return (
-            <span className={"font-suite " + style(date.getDay())}>
-        {days[date.getDay()]}
-      </span>
-        );
+        const days = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+        return <span className={"font-suite " + style(date.getDay())}>{days[date.getDay()]}</span>;
     };
 
     // 1. 서버 데이터 가져오기 및 Map 생성 최적화
@@ -141,21 +125,21 @@ export default function App() {
         setLoadingError(false);
 
         try {
-            const response = await axios.get(
-                backend +
-                `/webservice/getMonthInfo/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
-                {
-                    headers: {
-                        'X-Client-Token': localStorage.getItem("calisync_token") || ""
+            const response = await axios
+                .get(
+                    backend +
+                        `/webservice/getMonthInfo/${showingCalendar.getFullYear()}/${showingCalendar.getMonth() + 1}`,
+                    {
+                        headers: {
+                            Authorization: localStorage.getItem("calisync_token") || ""
+                        }
                     }
-                }
-            ).catch();
+                )
+                .catch();
 
             // key: specialDays, schedules
             const responseData =
-                typeof response.data === "string"
-                    ? JSON.parse(response.data)
-                    : response.data;
+                typeof response.data === "string" ? JSON.parse(response.data) : response.data;
 
             // function to parse data
             const groupByDay = <T extends { date: string }>(data: Array<T>) => {
@@ -168,8 +152,7 @@ export default function App() {
                 return map;
             };
 
-            const {specialDays: specialDaysData, schedules: schedulesData} =
-                responseData;
+            const { specialDays: specialDaysData, schedules: schedulesData } = responseData;
             // Speical Days
 
             if (!specialDaysData || specialDaysData.length === 0) {
@@ -209,28 +192,34 @@ export default function App() {
         // 클라이언트 인증
         const token = localStorage.getItem("calisync_token");
         if (token) {
-            axios.post(backend + "/auth/verify", { token }).then((e) => {
-                if (e.data) setAuthorized(true);
-                else setAuthorized(false);
-            }).catch((err) => console.error(err));
+            axios
+                .post(backend + "/auth/verify", { token })
+                .then((e) => {
+                    if (e.data) setAuthorized(true);
+                    else setAuthorized(false);
+                })
+                .catch((err) => console.error(err));
         } else setAuthorized(false);
 
         // 서버 이벤트 구독
         const eventSource = new EventSource(backend + "/webservice/autoRefereshEventSource");
         eventSource.onopen = () => {
             if (socketError) {
-                axios.post(backend + "/auth/verify", { token }).then((e) => {
-                    if (e.data) setAuthorized(true);
-                    else setAuthorized(false);
+                axios
+                    .post(backend + "/auth/verify", { token })
+                    .then((e) => {
+                        if (e.data) setAuthorized(true);
+                        else setAuthorized(false);
 
-                    if (sessionId) setSocketError(false);
-                }).catch((err) => console.error(err));
+                        if (sessionId) setSocketError(false);
+                    })
+                    .catch((err) => console.error(err));
             }
-        }
+        };
 
         eventSource.onerror = () => {
             setSocketError(true);
-        }
+        };
 
         eventSource.onmessage = (msg) => {
             try {
@@ -247,10 +236,12 @@ export default function App() {
                         break;
                 }
             } catch (_) {
-                console.warn("The server responded but received message is not in expected format.");
+                console.warn(
+                    "The server responded but received message is not in expected format."
+                );
                 console.warn(`message : ${msg.data}`);
             }
-        }
+        };
     }, [backend, protoSecured, servurl]);
 
     // 백엔드 서버 통신 시도 및 국가 이벤트, 사용자 이벤트 호출하기
@@ -272,7 +263,7 @@ export default function App() {
                     <div
                         key={`empty-${cd}`}
                         className="flex-1 border-b border-neutral-700 h-20 pt-2"
-                    ></div>,
+                    ></div>
                 );
             } else {
                 const day = rd;
@@ -283,9 +274,7 @@ export default function App() {
 
                 // 날짜 색상 결정 로직
                 const daySpecials = specialDays.get(day.toString()) || [];
-                const hasHoliday = daySpecials.some(
-                    (s) => s.type === "holi" || s.type === "rest",
-                );
+                const hasHoliday = daySpecials.some((s) => s.type === "holi" || s.type === "rest");
                 const isSat = cd % 7 === 6;
                 const isSun = cd % 7 === 0;
 
@@ -304,7 +293,7 @@ export default function App() {
                         className={clsx(
                             "flex-1 text-center border-b border-neutral-700 h-20 pt-2 cursor-pointer",
                             isToday && "bg-blue-300/20",
-                            "flex flex-col",
+                            "flex flex-col"
                         )}
                         onPointerUp={() => {
                             if (!loadingSchedules) {
@@ -312,19 +301,19 @@ export default function App() {
                                 setPopup((prev) => ({
                                     ...prev,
                                     open: true,
-                                    content: "EditSchedule",
+                                    content: "EditSchedule"
                                 }));
                             }
                         }}
                     >
-                    <span
-                        className={clsx(
-                            isSat && "text-blue-500",
-                            (isSun || hasHoliday) && "text-red-500",
-                        )}
-                    >
-                      {day}
-                    </span>
+                        <span
+                            className={clsx(
+                                isSat && "text-blue-500",
+                                (isSun || hasHoliday) && "text-red-500"
+                            )}
+                        >
+                            {day}
+                        </span>
                         <div className={"w-full flex flex-wrap justify-start"}>
                             {(() => {
                                 const result: React.ReactNode[] = [];
@@ -339,14 +328,14 @@ export default function App() {
                                             <div
                                                 className={"w-2 h-2 rounded-[100%] bg-gray-400/50"}
                                             />
-                                        </div>,
+                                        </div>
                                     );
                                 }
 
                                 return result;
                             })()}
                         </div>
-                    </div>,
+                    </div>
                 );
                 rd++;
             }
@@ -382,7 +371,7 @@ export default function App() {
                         className={
                             "flex-1 border-b border-neutral-700 h-20 pt-2 text-center text-neutral-700"
                         }
-                    />,
+                    />
                 );
                 rd++;
             }
@@ -394,7 +383,7 @@ export default function App() {
     // popup 설정
     // close function for Popup classes
     const close = () => {
-        setPopup((prev) => ({...prev, open: false}));
+        setPopup((prev) => ({ ...prev, open: false }));
     };
 
     // ** DEFINE POPUPS HERE **
@@ -415,7 +404,7 @@ export default function App() {
                             date: `${showingCalendar.getFullYear()}${monthInfo.currentMonth.toString().length == 1 ? "0" + monthInfo.currentMonth : monthInfo.currentMonth}${currentDay.toString().length == 1 ? "0" + currentDay : currentDay.toString()}`,
                             bgColor: "",
                             mdate: "",
-                            schedules: [],
+                            schedules: []
                         }
                     }
                     holidayInf={holidayInf}
@@ -425,7 +414,7 @@ export default function App() {
                     setAllowBgClose={(allow: boolean) => {
                         setPopup((prev) => {
                             if (prev.content == "EditSchedule")
-                                return {...prev, allowBgClose: allow};
+                                return { ...prev, allowBgClose: allow };
                             else return prev;
                         });
                     }}
@@ -435,19 +424,26 @@ export default function App() {
             ),
             // 변경점이 있거나 로딩중일땐 배경눌러 팝업닫기를 차단하고, 그 외의 상황에서는 풀기
             allowBgClose: false,
-            height: "90%",
+            height: "90%"
         },
         MoveTo: {
+            component: <MoveTo date={showingCalendar} setDate={setShowingCalendar} close={close} />,
+            allowBgClose: true,
+            height: "350px"
+        },
+        ServerCommand: {
             component: (
-                <MoveTo
-                    date={showingCalendar}
-                    setDate={setShowingCalendar}
-                    close={close}
+                <ServerCommand
+                    protoSecured={protoSecured}
+                    servurl={servurl}
+                    close={() => setPopupState(false, "ServerCommand")}
+                    currentYear={monthInfo.currentYear}
+                    backend={backend}
                 />
             ),
             allowBgClose: true,
-            height: "350px",
-        },
+            height: "80%"
+        }
     };
 
     // popup state
@@ -458,20 +454,40 @@ export default function App() {
     }>({
         open: false,
         content: "",
-        allowBgClose: true,
+        allowBgClose: true
     });
+
+    const setPopupState = (open: boolean, content: string) => {
+        setPopup((prev) => ({ ...prev, open, content }));
+    };
 
     // 비인증 시 단순히 가리는 게 아니라 아예 출력 자체가 안되어야 하므로 return문을 따로 작성
 
     if (authorized == undefined || socketError) {
         return (
             <div className={"w-full h-screen flex items-center justify-center bg-neutral-700"}>
-                <span className={"font-suite text-white"}>{!socketError ? "클라이언트 인증 중입니다..." : (<div className={"text-center"}>서버와 통신하는 중 오류가 발생했습니다<br/><span className={"text-gray-400"}>서버 응답 수신 시 새로고침됩니다.</span></div>)}</span>
+                <span className={"font-suite text-white"}>
+                    {!socketError ? (
+                        "클라이언트 인증 중입니다..."
+                    ) : (
+                        <div className={"text-center"}>
+                            서버와 통신하는 중 오류가 발생했습니다
+                            <br />
+                            <span className={"text-gray-400"}>
+                                서버 응답 수신 시 새로고침됩니다.
+                            </span>
+                        </div>
+                    )}
+                </span>
             </div>
         );
     } else if (!authorized) {
         return (
-            <div className={"w-full h-screen flex flex-col items-center justify-center bg-neutral-700"}>
+            <div
+                className={
+                    "w-full h-screen flex flex-col items-center justify-center bg-neutral-700"
+                }
+            >
                 <span className={"font-suite text-white mb-1"}>
                     <span className={"text-gray-500"}>HTTP</span>
                     <span className={"text-red-400"}>401</span>
@@ -479,7 +495,11 @@ export default function App() {
                     <span className={"font-bold"}>Unauthorized</span>
                 </span>
                 <GoogleOAuthProvider clientId={import.meta.env.VITE_API_GOOGLEOAUTH_CLIENT_ID}>
-                    <LoginButtion backend={ backend } setAuthorized={ setAuthorized } fetchSchedules={ fetchSchedules }/>
+                    <LoginButtion
+                        backend={backend}
+                        setAuthorized={setAuthorized}
+                        fetchSchedules={fetchSchedules}
+                    />
                 </GoogleOAuthProvider>
             </div>
         );
@@ -512,11 +532,11 @@ export default function App() {
                             "flex flex-col justify-end",
                             "transition-colors duration-200 ease-in-out",
                             popup.open && "bg-black/70",
-                            !popup.open && "pointer-events-none",
+                            !popup.open && "pointer-events-none"
                         )}
                         onPointerDown={() =>
                             setPopup((prev) => {
-                                return popup.allowBgClose ? {...prev, open: false} : prev;
+                                return popup.allowBgClose ? { ...prev, open: false } : prev;
                             })
                         }
                     >
@@ -528,7 +548,7 @@ export default function App() {
                             className={clsx(
                                 "fixed w-screen bg-neutral-700",
                                 "transition-all duration-200 ease-in-out",
-                                "pt-6 px-5",
+                                "pt-6 px-5"
                             )}
                             onPointerDown={(event) => event.stopPropagation()}
                         >
@@ -543,20 +563,19 @@ export default function App() {
             <div className={"w-screen h-screen text-white"}>
                 <div className={"flex items-center w-full bg-neutral-700"}>
                     <div
-                        className={
-                            "w-40 h-10 flex items-center justify-center cursor-pointer"
-                        }
+                        className={"w-40 h-10 flex items-center justify-center cursor-pointer"}
                         onPointerUp={() => window.location.assign(".")}
                     >
                         <span className={"font-suite"}>Desktop Calendar</span>
                     </div>
-                    <MdMyLocation onPointerUp={() => setShowingCalendar(now)}/>
-                    <IoTerminalOutline className={"ml-5"}/>
+                    <MdMyLocation onPointerUp={() => setShowingCalendar(now)} />
+                    <IoTerminalOutline
+                        className={"ml-5"}
+                        onPointerUp={() => setPopupState(true, "ServerCommand")}
+                    />
                     <FaArrowRight
                         className={"ml-5"}
-                        onPointerUp={() => {
-                            setPopup((prev) => ({...prev, open: true, content: "MoveTo"}));
-                        }}
+                        onPointerUp={() => setPopupState(true, "MoveTo")}
                     />
                     <RxReload
                         className={"ml-5 font-bold"}
@@ -566,10 +585,10 @@ export default function App() {
                 <div
                     className={clsx(
                         "inline-block p-2 text-green-300/30 animate-spin transition-opacity duration-300 ease-in-out",
-                        loadingSchedules ? "opacity-100" : "opacity-0",
+                        loadingSchedules ? "opacity-100" : "opacity-0"
                     )}
                 >
-                    <GrUpdate/>
+                    <GrUpdate />
                 </div>
                 <div className={"flex justify-center"}>
                     <div
@@ -581,23 +600,19 @@ export default function App() {
                                 new Date(
                                     showingCalendar.getFullYear(),
                                     showingCalendar.getMonth() - 1,
-                                    1,
-                                ),
+                                    1
+                                )
                             );
                         }}
                     >
-                        <FaArrowLeft/>
+                        <FaArrowLeft />
                     </div>
-                    <div
-                        className={
-                            "flex flex-col justify-end font-suite items-center h-15 mt-5"
-                        }
-                    >
+                    <div className={"flex flex-col justify-end font-suite items-center h-15 mt-5"}>
                         <span className={"text-gray-300 w-20 text-center"}>
-                          {monthInfo.currentYear}년
+                            {monthInfo.currentYear}년
                         </span>
-                                    <span className={"-mt-1 text-[2rem] font-bold w-20 text-center"}>
-                          {monthInfo.currentMonth}월
+                        <span className={"-mt-1 text-[2rem] font-bold w-20 text-center"}>
+                            {monthInfo.currentMonth}월
                         </span>
                     </div>
                     <div
@@ -609,12 +624,12 @@ export default function App() {
                                 new Date(
                                     showingCalendar.getFullYear(),
                                     showingCalendar.getMonth() + 1,
-                                    1,
-                                ),
+                                    1
+                                )
                             );
                         }}
                     >
-                        <FaArrowRight/>
+                        <FaArrowRight />
                     </div>
                 </div>
                 <div className={"w-full flex justify-center"}>
@@ -624,14 +639,12 @@ export default function App() {
                                 "mb-1 flex items-center",
                                 "text-[1.1rem]",
                                 "transition-all duration-200",
-                                loadingError ? "opacity-100 -mt-2" : "opacity-0 -mt-7",
+                                loadingError ? "opacity-100 -mt-2" : "opacity-0 -mt-7"
                             )}
                         >
-                        <span
-                            className={"ml-4 text-[1.2rem] mb-0.5 text-red-400 font-bold"}
-                        >
-                          <CiWarning/>
-                        </span>
+                            <span className={"ml-4 text-[1.2rem] mb-0.5 text-red-400 font-bold"}>
+                                <CiWarning />
+                            </span>
                             <span className={"ml-2 text-red-400"}>기념일 데이터 불러오기 실패</span>
                         </div>
                         <div

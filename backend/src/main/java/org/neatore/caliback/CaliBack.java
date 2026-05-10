@@ -9,18 +9,20 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class CaliBack {
-    public static Logger LOGGER = LogManager.getLogger(CaliBack.class);
+    public static Logger LOGGER = LoggerFactory.getLogger(CaliBack.class);
     public static Path datapath = Paths.get(System.getProperty("user.dir"), "data");
     public static Path configurations = Paths.get(datapath.toString(), "config.json");
 
@@ -45,8 +47,9 @@ public class CaliBack {
             database = Paths.get(configurationObj.getJSONObject("CaliBack").getString("database_path"));
             allowedEmail = configurationObj.getJSONObject("CaliBack").getString("allowed_email");
         } catch (IOException | JSONException e) {
-            LOGGER.fatal("Error while loading configuration file. Please check configuration file exists, or is valid.");
-            LOGGER.fatal("Configuration file has to be named \"config.json\" and located at {}", Paths.get(System.getProperty("user.dir"), "data").toString());
+            Marker fatalMarker = MarkerFactory.getMarker("FATAL");
+            LOGGER.error(fatalMarker, "Error while loading configuration file. Please check configuration file exists, or is valid.");
+            LOGGER.error(fatalMarker, "Configuration file has to be named \"config.json\" and located at {}", Paths.get(System.getProperty("user.dir"), "data"));
             System.exit(-1);
         }
 
