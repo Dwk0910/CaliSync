@@ -94,6 +94,8 @@ public class WebServiceController {
         }
     }
 
+    // ** SERVER COMMANDS **
+
     // SSE event source
     private SSESession createNewEmitter(ServerEventSender eventSender, String... sessionId) {
         // 30분 타임아웃
@@ -113,17 +115,15 @@ public class WebServiceController {
 
     @GetMapping(value = "/autoRefereshEventSource", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<SseEmitter> subscribeAutoRefereshSignal() {
-        SseEmitter emitter = this.createNewEmitter(autoUpdateService).getSession();
-
-        String uuid = UUID.randomUUID().toString();
+        SSESession sseSession = this.createNewEmitter(autoUpdateService);
 
         // 연결 신호
-        EmitterSender.send(emitter, new SSEResponse(0, uuid));
+        EmitterSender.send(sseSession.getSession(), new SSEResponse(0, sseSession.getSessionId()));
 
         // emitter 등록
-        autoUpdateService.addSession(new SSESession(uuid, emitter));
+        autoUpdateService.addSession(sseSession);
 
-        return ResponseEntity.ok(emitter);
+        return ResponseEntity.ok(sseSession.getSession());
     }
 
     @GetMapping(value = "/serverlog", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -140,6 +140,15 @@ public class WebServiceController {
 
         return ResponseEntity.ok(emitter);
     }
+
+    @GetMapping("/servercmd/refreshspecialdays/{year}")
+    public ResponseEntity<?> refreshSpecialDays(@RequestHeader("Authorization") String token, @PathVariable String year) {
+        if (!uvs.verify(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        specialDayService.refreshSpecialDays(year);
+        return ResponseEntity.ok().build();
+    }
+
+    // *************************************
 
     @GetMapping("/getMonthInfo/{year}/{month}")
     public ResponseEntity<String> getMonthInfo(@RequestHeader("Authorization") String sessionToken, @PathVariable String year, @PathVariable String month) {
