@@ -1,18 +1,33 @@
 import { useState, useEffect } from "react";
 import { IoClose } from "react-icons/io5";
 
+import axios from "axios";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+
+import { clsx } from "clsx";
+
+// Props for available server commands
+type ServerCommandProps = {
+    currentYear: number;
+    backend: string;
+};
 
 export default function ServerCommand({
     servurl,
     protoSecured,
-    close
+    close,
+
+    currentYear,
+    backend
 }: {
     servurl: string;
     protoSecured: boolean;
     close: () => void;
-}) {
+} & ServerCommandProps) {
     const [log, setLog] = useState<Array<String>>([]);
+    const [buttonLoading, setButtonLoading] = useState<{
+        [btnName: string]: { isLoading: boolean };
+    }>({ reloadSpecialDayInfo: { isLoading: false }, logout: { isLoading: false } });
 
     useEffect(() => {
         void fetchEventSource(
@@ -55,6 +70,97 @@ export default function ServerCommand({
                               </span>
                           ))
                         : "로딩 중입니다..."}
+                </div>
+                <div
+                    className={"w-full h-35 px-3 overflow-y-scroll mt-4 flex flex-col items-center"}
+                >
+                    <button
+                        className={clsx(
+                            "w-full h-10 rounded-lg mt-3 font-suite flex items-center justify-center",
+                            "transition-[colors, scale] duration-200 ease-in-out active:scale-105",
+                            buttonLoading["reloadSpecialDayInfo"].isLoading
+                                ? "bg-gray-600"
+                                : "bg-blue-500"
+                        )}
+                        onClick={() => {
+                            setButtonLoading((prev) => ({
+                                ...prev,
+                                reloadSpecialDayInfo: { isLoading: true }
+                            }));
+
+                            const endLoadingAction = () => {
+                                setButtonLoading((prev) => ({
+                                    ...prev,
+                                    reloadSpecialDayInfo: { isLoading: false }
+                                }));
+                            };
+
+                            axios
+                                .get(
+                                    backend +
+                                        `/webservice/servercmd/refreshspecialdays/${currentYear}`,
+                                    {
+                                        headers: {
+                                            Authorization: localStorage
+                                                .getItem("calisync_token")!
+                                                .toString()
+                                        }
+                                    }
+                                )
+                                .then((_) => {
+                                    endLoadingAction();
+                                    close();
+                                    window.location.reload();
+                                })
+                                .catch((e) => {
+                                    endLoadingAction();
+                                    console.error(
+                                        "Error occured while refreshing special day info",
+                                        e
+                                    );
+                                });
+                        }}
+                    >
+                        {buttonLoading["reloadSpecialDayInfo"].isLoading ? (
+                            <div
+                                className={
+                                    "w-5 h-5 border-3 border-t-3 border-gray-400 border-t-gray-700 rounded-full animate-spin"
+                                }
+                            ></div>
+                        ) : (
+                            <span>({currentYear}년) 기념일 정보 다시 불러오기</span>
+                        )}
+                    </button>
+                    <button
+                        className={clsx(
+                            "w-full h-10 rounded-lg bg-red-400 mt-3 font-suite flex items-center justify-center",
+                            "transition-[colors, scale] duration-200 ease-in-out active:scale-105"
+                        )}
+                        onClick={() => {
+                            setButtonLoading((prev) => ({ ...prev, logout: { isLoading: true } }));
+                            axios
+                                .get(backend + "/webservice/servercmd/logout", {
+                                    headers: {
+                                        Authorization: localStorage
+                                            .getItem("calisync_token")!
+                                            .toString()
+                                    }
+                                })
+                                .then((_) => {
+                                    close();
+                                    window.location.reload();
+                                })
+                                .catch((e) => {
+                                    console.error(e);
+                                    setButtonLoading((prev) => ({
+                                        ...prev,
+                                        logout: { isLoading: false }
+                                    }));
+                                });
+                        }}
+                    >
+                        <span>로그아웃</span>
+                    </button>
                 </div>
             </div>
         </div>

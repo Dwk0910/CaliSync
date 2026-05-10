@@ -148,6 +148,13 @@ public class WebServiceController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/servercmd/logout")
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String token) {
+        if (!uvs.verify(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        uvs.deleteSession(token);
+        return ResponseEntity.ok().build();
+    }
+
     // *************************************
 
     @GetMapping("/getMonthInfo/{year}/{month}")

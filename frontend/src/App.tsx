@@ -438,6 +438,7 @@ export default function App() {
                     servurl={servurl}
                     close={() => setPopupState(false, "ServerCommand")}
                     currentYear={monthInfo.currentYear}
+                    backend={backend}
                 />
             ),
             allowBgClose: true,
