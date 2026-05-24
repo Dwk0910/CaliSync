@@ -20,13 +20,12 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 @Service
 public class AutoUpdateService extends ServerEventSender {
-
-
     private final Set<WebSocketSession> sessions = Collections.synchronizedSet(new HashSet<>());
-    private final Set<SSESession> sse_sessions = Collections.synchronizedSet(new HashSet<>());
+    private final Set<SSESession> sse_sessions = new CopyOnWriteArraySet<>();
 
     @Override
     public void addSession(IdentableObject session) {
@@ -62,6 +61,7 @@ public class AutoUpdateService extends ServerEventSender {
             if (!session.getSessionId().equals(senderId)) {
                 boolean b = EmitterSender.send(session.getSession(), new SSEResponse(600, null));
                 if (!b) unavailableSessions.add(session);
+                Thread.yield();
             }
         }
 
