@@ -43,6 +43,9 @@ public class SSEClient {
                 .build();
 
         this.hum = new HardUpdateManager();
+
+        // initial hard update (Synchronizing with the server at startup)
+        this.hum.run();
     }
 
     public void start() {
