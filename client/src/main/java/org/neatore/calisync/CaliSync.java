@@ -1,29 +1,14 @@
 package org.neatore.calisync;
 
-import okhttp3.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-//import org.neatore.calisync.service.DBWatcher;
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import org.neatore.calisync.util.CalendarProcess;
-
 import org.neatore.calisync.util.NotifySystem;
 
-//import java.net.URI;
-//
-//import java.net.URISyntaxException;
 import java.nio.file.Path;
 
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
-
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.sse.EventSourceListener;
-import okhttp3.sse.EventSource;
-import okhttp3.sse.EventSources;
 
 public class CaliSync {
 
@@ -36,6 +21,7 @@ public class CaliSync {
     public static final String dburl = "jdbc:sqlite:" + dbPath;
     public static final String serverurl = "neatorebackend.kro.kr/calisync";
     public static final String serverurl_local = "localhost:8080";
+    public static String url;
 
     public static Logger LOGGER = LogManager.getLogger(CaliSync.class);
     public static NotifySystem notifySystem = new NotifySystem();
@@ -51,36 +37,19 @@ public class CaliSync {
 
         LOGGER.info("Process started. Opening connection to the CaliSync backend SSE Server...");
 
-        OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(0, TimeUnit.SECONDS) // Disable read timeout for SSE
-                .build();
 
         boolean localtest = Arrays.stream(args).toList().contains("-LOCALTEST");
-        Request request = new Request.Builder()
-                .url(((localtest) ? "http://" + serverurl_local : "https://" + serverurl) + "/autoRefereshEventSource")
-                .header("Accept", "text/event-stream")
-                .header("Authorization", System.getenv("CALISYNC_CLIENT_SECRET"))
-                .build();
+        CaliSync.url = ((localtest) ? "http://" + serverurl_local : "https://" + serverurl);
 
-        EventSource autoUpdateEventSource = EventSources.createFactory(client).newEventSource(request, new EventSourceListener() {
-            @Override
-            public void onOpen(@NonNull EventSource eventSource, @NonNull Response response) {
-                LOGGER.info("Connection established.");
-            }
+        SSEClient client = new SSEClient();
+        client.start();
 
-            @Override
-            public void onEvent(@NonNull EventSource eventSource, @Nullable String id, @Nullable String type, @NonNull String data) {
-                System.out.println("Received event: " + data);
-            }
-
-            @Override
-            public void onClosed(@NonNull EventSource eventSource) {
-                LOGGER.info("Connection closed.");
-            }
-        });
-
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("자원 정리중...");
+            client.disconnect();
+        }));
     }
+
 
 //    public static void main(String[] args) throws URISyntaxException, InterruptedException {
 //        if (!dbPath.toFile().exists()) {
