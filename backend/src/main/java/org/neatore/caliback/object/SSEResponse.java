@@ -23,7 +23,7 @@ public class SSEResponse {
     public String toString() {
         JSONObject response = new JSONObject();
         response.put("code", code);
-        if (body != null) response.put("body", new JSONArray(body));
+        if (body != null) response.put("body", body);
 
         return response.toString();
     }

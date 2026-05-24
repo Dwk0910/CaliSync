@@ -2,6 +2,7 @@ package org.neatore.caliback.controller;
 
 import org.json.JSONArray;
 
+import org.neatore.caliback.services.UserVerifyService;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 
@@ -11,8 +12,11 @@ import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import lombok.RequiredArgsConstructor;
 
 import java.io.ByteArrayOutputStream;
 
@@ -35,9 +39,17 @@ import static org.neatore.caliback.CaliBack.LOGGER;
 import static org.neatore.caliback.CaliBack.dbc;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/caliclient")
 public class HardUpdateController {
+    private final UserVerifyService uvs;
     public static final Map<String, Long> VALID_KEYS = new ConcurrentHashMap<>();
+
+    @GetMapping("/hard-update/getKey")
+    public ResponseEntity<String> getKey(@RequestHeader("Authorization") String token) {
+        if (!uvs.verify(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(dbc.getDownloadKey());
+    }
 
     @GetMapping("/hard-update/{key}")
     public ResponseEntity<Resource> getSQLFile(@PathVariable String key) {

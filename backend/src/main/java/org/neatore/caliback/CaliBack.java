@@ -30,6 +30,7 @@ public class CaliBack {
     public static DBC dbc;
 
     public static String allowedEmail;
+    public static String clientPassword;
 
     public static void main(String[] args) {
         // Parse configuration
@@ -43,9 +44,11 @@ public class CaliBack {
                 sb.append(buffer, 0, bytesIn);
             }
 
-            configurationObj = new JSONObject(sb.toString());
-            database = Paths.get(configurationObj.getJSONObject("CaliBack").getString("database_path"));
-            allowedEmail = configurationObj.getJSONObject("CaliBack").getString("allowed_email");
+            configurationObj = new JSONObject(sb.toString()).getJSONObject("CaliBack");
+
+            database = Paths.get(configurationObj.getString("database_path"));
+            allowedEmail = configurationObj.getString("allowed_email");
+            clientPassword = configurationObj.getString("client_password");
         } catch (IOException | JSONException e) {
             Marker fatalMarker = MarkerFactory.getMarker("FATAL");
             LOGGER.error(fatalMarker, "Error while loading configuration file. Please check configuration file exists, or is valid.");
