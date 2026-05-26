@@ -32,11 +32,7 @@ public class CaliSync {
             return;
         }
 
-        // 캘린더 꺼져있으면 자동으로 실행
-        CalendarProcess.refresh();
-
         LOGGER.info("Process started. Opening connection to the CaliSync backend SSE Server...");
-
 
         boolean localtest = Arrays.stream(args).toList().contains("-LOCALTEST");
         CaliSync.url = ((localtest) ? "http://" + serverurl_local : "https://" + serverurl);
@@ -44,8 +40,11 @@ public class CaliSync {
         SSEClient client = new SSEClient();
         client.start();
 
+        // 캘린더 꺼져있으면 자동으로 실행
+        CalendarProcess.refresh();
+
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("자원 정리중...");
+            LOGGER.info("자원 정리중...");
             client.disconnect();
         }));
     }
