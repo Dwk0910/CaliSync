@@ -56,12 +56,19 @@ public class AutoUpdateService extends ServerEventSender {
             if (session.isOpen() && !session.getId().equals(senderId)) response(session, new PacketResponse(600, null));
         }
 
-        final Set<SSESession> unavailableSessions = new HashSet<>();
+        final Set<SSESession> unavailableSessions = Collections.synchronizedSet(new HashSet<>());
         for (SSESession session : sse_sessions) {
             if (!session.getSessionId().equals(senderId)) {
-                boolean b = EmitterSender.send(session.getSession(), new SSEResponse(600, null));
-                if (!b) unavailableSessions.add(session);
-                Thread.yield();
+                Thread t = new Thread(() -> {
+                    try {
+                        boolean b = EmitterSender.send(session.getSession(), new SSEResponse(600, null));
+                        if (!b) throw new IllegalStateException();
+                        Thread.yield();
+                    } catch (IllegalStateException e) {
+                        unavailableSessions.add(session);
+                    }
+                });
+                t.start();
             }
         }
 

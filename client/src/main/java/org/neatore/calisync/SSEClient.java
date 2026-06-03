@@ -63,9 +63,16 @@ public class SSEClient {
                 switch (res.getInt("code")) {
                     case 0 -> retries = 0;
                     case 600 -> {
-                        LOGGER.info("Received calendar update event. Refreshing calendar...");
-                        hum.run();
-                        CalendarProcess.refresh();
+                        try {
+                            LOGGER.info("Received calendar update event. Refreshing calendar...");
+                            CalendarProcess.shutdown();
+                            Thread t = new Thread(hum::run);
+                            t.start();
+                            t.join();
+                            CalendarProcess.refresh();
+                        } catch (InterruptedException e) {
+                            LOGGER.error("{}", e);
+                        }
                     }
                 }
             }
